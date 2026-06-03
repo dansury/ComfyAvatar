@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ComfyAvatar — генерация AI-аватаров</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🎭</span>
+      <div>
+        <h1>ComfyAvatar</h1>
+        <p class="subtitle">Локальная генерация говорящих аватаров</p>
+      </div>
+    </div>
+    <div class="status" id="statusBar">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">Проверка ComfyUI…</span>
+      <button class="btn btn-small" id="startComfyBtn" title="Найти и запустить ComfyUI">Запустить ComfyUI</button>
+      <button class="btn btn-small btn-ghost" id="settingsBtn" title="Настройки">⚙️</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Глобальное уведомление об ошибке -->
+    <div id="banner" class="banner hidden"></div>
+
+    <div class="grid">
+      <!-- Шаг 1: Фото -->
+      <section class="card" id="cardPhoto">
+        <div class="card-head"><span class="step">1</span><h2>Загрузка фото</h2></div>
+        <div class="dropzone" id="photoDrop">
+          <input type="file" id="photoInput" accept="image/*" hidden />
+          <div class="dz-empty" id="photoEmpty">
+            <span class="dz-icon">🖼️</span>
+            <p>Перетащите фото сюда<br />или нажмите для выбора</p>
+            <small>PNG, JPG, WEBP · до 25&nbsp;МБ</small>
+          </div>
+          <img id="photoPreview" class="preview hidden" alt="Предпросмотр фото" />
+        </div>
+      </section>
+
+      <!-- Шаг 2: Голос -->
+      <section class="card" id="cardVoice">
+        <div class="card-head"><span class="step">2</span><h2>Голос</h2></div>
+        <div class="voice-controls">
+          <button class="btn" id="recordBtn">🎙️ Записать (5–15&nbsp;с)</button>
+          <span class="rec-timer hidden" id="recTimer">0.0&nbsp;с</span>
+          <span class="divider">или</span>
+          <button class="btn btn-ghost" id="voiceUploadBtn">📁 Загрузить WAV/MP3</button>
+          <input type="file" id="voiceInput" accept="audio/*" hidden />
+        </div>
+        <audio id="voicePlayer" class="audio hidden" controls></audio>
+        <p class="hint">Образец голоса нужен для клонирования (XTTS v2). Без образца будет использован стандартный голос.</p>
+      </section>
+
+      <!-- Шаг 3: Текст -->
+      <section class="card" id="cardText">
+        <div class="card-head"><span class="step">3</span><h2>Текст</h2></div>
+        <textarea id="textInput" rows="4" placeholder="Введите текст, который произнесёт аватар…"></textarea>
+        <div class="row">
+          <label>Движок TTS:
+            <select id="ttsEngine">
+              <option value="xtts">Coqui XTTS v2 (клонирование)</option>
+              <option value="kokoro">Kokoro TTS (быстрый)</option>
+            </select>
+          </label>
+          <label>Язык:
+            <select id="language">
+              <option value="ru">Русский</option>
+              <option value="en">English</option>
+              <option value="es">Español</option>
+              <option value="de">Deutsch</option>
+              <option value="fr">Français</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <!-- Шаг 4: Генерация -->
+      <section class="card" id="cardGen">
+        <div class="card-head"><span class="step">4</span><h2>Генерация</h2></div>
+        <button class="btn btn-primary btn-big" id="generateBtn">✨ Сгенерировать аватар</button>
+        <div class="progress hidden" id="progressBox">
+          <div class="spinner"></div>
+          <div class="progress-info">
+            <span id="progressText">Подготовка…</span>
+            <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Шаг 5: Результат -->
+    <section class="card result-card hidden" id="cardResult">
+      <div class="card-head"><span class="step">5</span><h2>Результат</h2></div>
+      <video id="resultVideo" class="result-video" controls></video>
+      <div class="result-actions">
+        <a class="btn btn-primary" id="downloadBtn" download>⬇️ Скачать</a>
+        <button class="btn btn-ghost" id="repeatBtn">🔁 Повторить</button>
+      </div>
+    </section>
+
+    <!-- История -->
+    <section class="history">
+      <div class="card-head"><h2>История генераций</h2>
+        <button class="btn btn-small btn-ghost" id="refreshHistory">Обновить</button>
+      </div>
+      <div class="history-grid" id="historyGrid">
+        <p class="empty-hint" id="historyEmpty">Пока нет генераций.</p>
+      </div>
+    </section>
+
+    <!-- Логи -->
+    <section class="logs">
+      <div class="card-head"><h2>Логи</h2>
+        <div>
+          <button class="btn btn-small btn-ghost" id="toggleLogs">Показать</button>
+          <button class="btn btn-small btn-ghost" id="copyLogs">Копировать</button>
+        </div>
+      </div>
+      <pre class="log-box hidden" id="logBox"></pre>
+    </section>
+  </main>
+
+  <!-- Модальное окно настроек -->
+  <div class="modal hidden" id="settingsModal">
+    <div class="modal-body">
+      <h3>Настройки</h3>
+      <label>Путь к ComfyUI:
+        <input type="text" id="setComfyPath" placeholder="C:\ComfyUI_windows-portable" />
+      </label>
+      <label>URL ComfyUI:
+        <input type="text" id="setComfyUrl" placeholder="http://127.0.0.1:8188" />
+      </label>
+      <p class="hint" id="detectInfo"></p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="detectBtn">🔍 Найти автоматически</button>
+        <button class="btn btn-primary" id="saveSettingsBtn">Сохранить</button>
+        <button class="btn btn-ghost" id="closeSettingsBtn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
