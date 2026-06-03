@@ -24,7 +24,9 @@ from __future__ import annotations
 
 import asyncio
 import shutil
+import threading
 import uuid
+import webbrowser
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -103,10 +105,21 @@ class JobManager:
 jobs = JobManager()
 
 
+def _open_browser_delayed(url: str, delay: float = 1.0) -> None:
+    """Open browser after delay to ensure server is ready."""
+    def _open():
+        import time
+        time.sleep(delay)
+        webbrowser.open(url)
+    thread = threading.Thread(target=_open, daemon=True)
+    thread.start()
+
+
 @app.on_event("startup")
 async def _capture_loop() -> None:
     jobs.loop = asyncio.get_running_loop()
     logger.info("ComfyAvatar backend запущен. Frontend: %s", FRONTEND_DIR)
+    _open_browser_delayed("http://127.0.0.1:8000", delay=1.5)
 
 
 # --------------------------------------------------------------------------- #
