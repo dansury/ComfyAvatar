@@ -33,6 +33,10 @@ logger = setup_logging()
 DEFAULT_PORT = 8188
 DEFAULT_HOST = "127.0.0.1"
 
+# Порты, на которых может слушать ComfyUI (portable обычно 8188,
+# ComfyUI Desktop по умолчанию 8000). Опрашиваются, если настроенный URL молчит.
+COMMON_PORTS = [8188, 8000, 8888, 8189]
+
 # Глобальный handle процесса ComfyUI, если мы его сами запустили.
 _comfy_process: Optional[subprocess.Popen] = None
 
@@ -60,12 +64,21 @@ def _candidate_paths() -> List[Path]:
                 paths.append(base / name)
         paths.append(userprofile / "Desktop" / "ComfyUI_windows-portable")
         paths.append(userprofile / "Downloads" / "ComfyUI_windows-portable")
+        # ComfyUI Desktop по умолчанию ставится сюда.
+        paths.append(localappdata / "Programs" / "ComfyUI")
+        paths.append(localappdata / "Programs" / "@comfyorgcomfyui-electron")
+        # Сканируем диски на 1 уровень вложенности: ловит D:\AI\ComfyUI,
+        # D:\Programs\ComfyUI_windows-portable и подобное.
+        for drive in drives:
+            paths.extend(_glob_comfyui(Path(drive)))
     else:  # Linux / macOS
         for name in ("ComfyUI", "comfyui", "ComfyUI_portable"):
             paths.append(home / name)
             paths.append(home / "Documents" / name)
             paths.append(Path("/opt") / name)
             paths.append(Path.cwd() / name)
+        for base in (home, Path.cwd(), Path("/opt")):
+            paths.extend(_glob_comfyui(base))
 
     # Уникализируем, сохраняя порядок.
     seen = set()
@@ -77,19 +90,62 @@ def _candidate_paths() -> List[Path]:
     return unique
 
 
+def _glob_comfyui(base: Path) -> List[Path]:
+    """Находит папки ComfyUI* на 1 уровень вложенности внутри base.
+
+    Это ловит нестандартные размещения вроде D:\\AI\\ComfyUI. Поиск ограничен
+    одним уровнем, чтобы не сканировать диск целиком.
+    """
+
+    found: List[Path] = []
+    if not base.exists():
+        return found
+    patterns = ("ComfyUI*", "comfyui*", "*/ComfyUI*", "*/comfyui*")
+    for pattern in patterns:
+        try:
+            for match in base.glob(pattern):
+                if match.is_dir():
+                    found.append(match)
+        except OSError:
+            # Нет доступа к каталогу / диск недоступен — просто пропускаем.
+            continue
+    return found
+
+
+# Маркеры, по которым директория опознаётся как установка ComfyUI.
+# Включают и Desktop (.exe), и portable, и исходную версию.
+_MARKERS = [
+    "main.py",
+    "ComfyUI/main.py",
+    "run_nvidia_gpu.bat",
+    "run_cpu.bat",
+    "ComfyUI.exe",
+    "ComfyUI/ComfyUI.exe",
+    "resources/ComfyUI/main.py",  # раскладка ComfyUI Desktop
+]
+
+
 def _looks_like_comfyui(path: Path) -> bool:
     """Проверяет, что директория действительно похожа на установку ComfyUI."""
 
     if not path.exists() or not path.is_dir():
         return False
-    markers = ["main.py", "ComfyUI/main.py", "run_nvidia_gpu.bat", "run_cpu.bat"]
-    for marker in markers:
+    for marker in _MARKERS:
         if (path / marker).exists():
             return True
-    # Иногда внутри лежит подпапка ComfyUI (portable).
+    # Иногда внутри лежит подпапка ComfyUI (portable / desktop).
     if (path / "ComfyUI").is_dir() and (path / "ComfyUI" / "main.py").exists():
         return True
     return False
+
+
+def _find_exe(path: Path) -> Optional[Path]:
+    """Ищет исполняемый файл ComfyUI Desktop (ComfyUI.exe)."""
+
+    for c in (path / "ComfyUI.exe", path / "ComfyUI" / "ComfyUI.exe"):
+        if c.exists():
+            return c
+    return None
 
 
 def _resolve_main_dir(path: Path) -> Path:
@@ -99,6 +155,8 @@ def _resolve_main_dir(path: Path) -> Path:
         return path
     if (path / "ComfyUI" / "main.py").exists():
         return path / "ComfyUI"
+    if (path / "resources" / "ComfyUI" / "main.py").exists():
+        return path / "resources" / "ComfyUI"
     return path
 
 
@@ -126,8 +184,18 @@ def find_comfyui(use_cache: bool = True) -> Optional[Dict[str, Optional[str]]]:
     settings = load_settings()
     if use_cache and settings.get("comfyui_path"):
         cached = Path(settings["comfyui_path"])
+        # Пользователь мог указать сам файл (…\ComfyUI.exe или …\main.py) —
+        # берём его директорию.
+        if cached.is_file():
+            cached = cached.parent
         if _looks_like_comfyui(cached):
             logger.info("ComfyUI взят из кеша настроек: %s", cached)
+            return _build_info(cached)
+        # Путь указан вручную, но стандартные маркеры не найдены. Всё равно
+        # доверяем пользователю, если директория существует — иначе нестандартные
+        # сборки (Desktop, кастомные) было бы невозможно использовать.
+        if cached.exists() and cached.is_dir():
+            logger.info("Используем указанный вручную путь к ComfyUI: %s", cached)
             return _build_info(cached)
         logger.warning("Кешированный путь к ComfyUI больше не валиден: %s", cached)
 
@@ -145,11 +213,17 @@ def find_comfyui(use_cache: bool = True) -> Optional[Dict[str, Optional[str]]]:
 
 def _build_info(path: Path) -> Dict[str, Optional[str]]:
     embedded = _find_embedded_python(path)
+    exe = _find_exe(path)
+    main_dir = _resolve_main_dir(path)
+    has_main = (main_dir / "main.py").exists()
     return {
         "path": str(path),
-        "main_dir": str(_resolve_main_dir(path)),
+        "main_dir": str(main_dir),
         "python": str(embedded) if embedded else sys.executable,
         "portable": bool(embedded),
+        "exe": str(exe) if exe else None,
+        # Desktop-сборка: есть .exe, но нет исходного main.py для запуска вручную.
+        "desktop": bool(exe and not has_main),
     }
 
 
@@ -160,15 +234,51 @@ def _comfy_url() -> str:
     return load_settings().get("comfyui_url") or f"http://{DEFAULT_HOST}:{DEFAULT_PORT}"
 
 
-def is_comfyui_running(url: Optional[str] = None, timeout: float = 2.0) -> bool:
-    """Проверяет, отвечает ли ComfyUI (через /system_stats)."""
+def _ping(url: str, timeout: float = 2.0) -> bool:
+    """Отвечает ли ComfyUI по этому URL (через /system_stats)."""
 
-    url = url or _comfy_url()
     try:
-        resp = requests.get(f"{url}/system_stats", timeout=timeout)
+        resp = requests.get(f"{url.rstrip('/')}/system_stats", timeout=timeout)
         return resp.status_code == 200
     except requests.RequestException:
         return False
+
+
+def detect_running_url(persist: bool = True) -> Optional[str]:
+    """Ищет запущенный ComfyUI: сначала настроенный URL, затем частые порты.
+
+    ComfyUI Desktop по умолчанию слушает 8000, portable — 8188. Если найден
+    рабочий URL, отличный от настроенного, он сохраняется в settings.json.
+    """
+
+    configured = _comfy_url()
+    if _ping(configured):
+        return configured
+
+    tried = {configured}
+    for port in COMMON_PORTS:
+        candidate = f"http://{DEFAULT_HOST}:{port}"
+        if candidate in tried:
+            continue
+        tried.add(candidate)
+        if _ping(candidate, timeout=1.0):
+            logger.info("ComfyUI обнаружен на %s (настроен был %s)", candidate, configured)
+            if persist:
+                save_settings({"comfyui_url": candidate})
+            return candidate
+    return None
+
+
+def is_comfyui_running(url: Optional[str] = None, timeout: float = 2.0) -> bool:
+    """Проверяет, отвечает ли ComfyUI (через /system_stats).
+
+    Если конкретный URL не задан, опрашивает и частые порты (8188/8000/…),
+    чтобы поймать уже запущенный ComfyUI Desktop на нестандартном порту.
+    """
+
+    if url is not None:
+        return _ping(url, timeout=timeout)
+    return detect_running_url() is not None
 
 
 def _port_in_use(host: str, port: int) -> bool:
@@ -185,11 +295,13 @@ def start_comfyui_if_needed(wait_seconds: int = 60) -> Dict[str, object]:
 
     global _comfy_process
 
-    url = _comfy_url()
-    if is_comfyui_running(url):
-        logger.info("ComfyUI уже запущен: %s", url)
-        return {"running": True, "started": False, "message": "ComfyUI уже запущен", "url": url}
+    # Сначала проверяем, не запущен ли ComfyUI уже (в т.ч. на другом порту).
+    running_url = detect_running_url()
+    if running_url:
+        logger.info("ComfyUI уже запущен: %s", running_url)
+        return {"running": True, "started": False, "message": "ComfyUI уже запущен", "url": running_url}
 
+    url = _comfy_url()
     info = find_comfyui()
     if not info:
         msg = (
@@ -202,13 +314,26 @@ def start_comfyui_if_needed(wait_seconds: int = 60) -> Dict[str, object]:
     main_dir = Path(info["main_dir"])
     python_exe = info["python"]
     main_py = main_dir / "main.py"
-    if not main_py.exists():
-        msg = f"Не найден main.py в {main_dir}"
+    exe = info.get("exe")
+
+    if main_py.exists():
+        cmd = [str(python_exe), str(main_py), "--port", str(DEFAULT_PORT)]
+        run_cwd = main_dir
+    elif exe:
+        # ComfyUI Desktop: запускаем приложение, оно само поднимет свой сервер
+        # (порт определим опросом ниже через detect_running_url).
+        cmd = [str(exe)]
+        run_cwd = Path(exe).parent
+    else:
+        msg = (
+            f"Не найден main.py или ComfyUI.exe в {info['path']}. "
+            "Проверьте путь к ComfyUI в настройках."
+        )
         logger.error(msg)
         return {"running": False, "started": False, "message": msg, "url": url}
 
-    cmd = [str(python_exe), str(main_py), "--port", str(DEFAULT_PORT)]
-    logger.info("Запуск ComfyUI: %s (cwd=%s)", " ".join(cmd), main_dir)
+    logger.info("Запуск ComfyUI: %s (cwd=%s)", " ".join(cmd), run_cwd)
+    main_dir = run_cwd
     try:
         _comfy_process = subprocess.Popen(
             cmd,
@@ -223,10 +348,14 @@ def start_comfyui_if_needed(wait_seconds: int = 60) -> Dict[str, object]:
         logger.exception(msg)
         return {"running": False, "started": False, "message": msg, "url": url}
 
-    # Ждём, пока ComfyUI поднимется.
+    # Desktop-лаунчер часто сразу же завершается, передав работу оконному
+    # процессу, поэтому ранний выход процесса для него ошибкой не считаем.
+    is_desktop = bool(exe) and not main_py.exists()
+
+    # Ждём, пока ComfyUI поднимется (опрашиваем и нестандартные порты).
     deadline = time.time() + wait_seconds
     while time.time() < deadline:
-        if _comfy_process.poll() is not None:
+        if not is_desktop and _comfy_process.poll() is not None:
             # Процесс завершился раньше времени — соберём вывод.
             output = ""
             if _comfy_process.stdout:
@@ -234,9 +363,10 @@ def start_comfyui_if_needed(wait_seconds: int = 60) -> Dict[str, object]:
             msg = f"ComfyUI завершился при запуске. Вывод:\n{output[-2000:]}"
             logger.error(msg)
             return {"running": False, "started": False, "message": msg, "url": url}
-        if is_comfyui_running(url, timeout=1.5):
-            logger.info("ComfyUI успешно запущен на %s", url)
-            return {"running": True, "started": True, "message": "ComfyUI запущен", "url": url}
+        found_url = detect_running_url()
+        if found_url:
+            logger.info("ComfyUI успешно запущен на %s", found_url)
+            return {"running": True, "started": True, "message": "ComfyUI запущен", "url": found_url}
         time.sleep(1.5)
 
     msg = f"ComfyUI не ответил за {wait_seconds} секунд. Проверьте лог ComfyUI."

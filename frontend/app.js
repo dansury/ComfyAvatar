@@ -342,7 +342,8 @@ function setupSettings() {
       const r = await api("/api/comfyui/detect", { method: "POST" });
       if (r.found) {
         $("setComfyPath").value = r.info.path;
-        $("detectInfo").textContent = `Найдено: ${r.info.path}${r.info.portable ? " (portable)" : ""}`;
+        const kind = r.info.desktop ? " (Desktop)" : (r.info.portable ? " (portable)" : "");
+        $("detectInfo").textContent = `Найдено: ${r.info.path}${kind}`;
       } else {
         $("detectInfo").textContent = r.message || "ComfyUI не найден";
       }
