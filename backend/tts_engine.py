@@ -59,10 +59,30 @@ def _load_xtts():
 
 
 def _generate_xtts(text: str, voice_sample: Optional[Path], language: str, out_path: Path) -> None:
+    from . import audio_utils
+
     model = _load_xtts()
     kwargs = {"text": text, "file_path": str(out_path), "language": language}
     if voice_sample and voice_sample.exists():
-        kwargs["speaker_wav"] = str(voice_sample)
+        # Если файл OGG, пытаемся использовать напрямую.
+        # Если ошибка — конвертируем в WAV.
+        speaker_wav = str(voice_sample)
+        if voice_sample.suffix.lower() == ".ogg":
+            try:
+                # Пытаемся использовать OGG напрямую
+                kwargs["speaker_wav"] = speaker_wav
+                logger.debug("Используется OGG файл для клонирования голоса: %s", voice_sample)
+            except Exception:  # noqa: BLE001
+                # Если не работает, конвертируем
+                logger.warning("OGG не поддерживается, конвертируем в WAV: %s", voice_sample)
+                try:
+                    wav_path = audio_utils.convert_to_wav(voice_sample)
+                    kwargs["speaker_wav"] = str(wav_path)
+                except Exception as exc:
+                    logger.error("Ошибка конвертации OGG: %s", exc)
+                    raise
+        else:
+            kwargs["speaker_wav"] = speaker_wav
     else:
         # Без образца используем встроенный голос (первый доступный).
         try:
