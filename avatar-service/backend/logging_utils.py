@@ -65,6 +65,17 @@ def setup_logging(level: int = logging.INFO) -> logging.Logger:
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
+    # На Windows консоль часто работает в OEM-кодировке (cp866/cp1251), из-за чего
+    # русский текст в логах превращается в «кракозябры». Принудительно переводим
+    # stdout/stderr в UTF-8 (start.bat дополнительно переключает консоль chcp 65001).
+    for _stream in (sys.stdout, sys.stderr):
+        _reconfigure = getattr(_stream, "reconfigure", None)
+        if _reconfigure is not None:
+            try:
+                _reconfigure(encoding="utf-8")
+            except (ValueError, OSError):  # pragma: no cover - на всякий случай
+                pass
+
     stream = logging.StreamHandler(sys.stdout)
     stream.setFormatter(fmt)
     logger.addHandler(stream)
