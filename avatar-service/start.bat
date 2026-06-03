@@ -3,6 +3,10 @@ chcp 65001 >nul
 title ComfyAvatar
 setlocal enabledelayedexpansion
 
+REM UTF-8 для Python: чтобы русский текст в логах не превращался в "кракозябры".
+set "PYTHONUTF8=1"
+set "PYTHONIOENCODING=utf-8"
+
 REM ==========================================================================
 REM  ComfyAvatar - запуск на Windows.
 REM  Это окно НЕ закроется при ошибке: вы успеете увидеть и скопировать вывод.
