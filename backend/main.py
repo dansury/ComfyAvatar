@@ -4,20 +4,21 @@
 Открыть: http://127.0.0.1:8000
 
 Эндпоинты:
-- GET  /                     — веб-интерфейс
-- GET  /api/status           — статус ComfyUI и окружения
-- POST /api/comfyui/start    — найти и запустить ComfyUI
-- POST /api/comfyui/detect   — только поиск пути
-- GET  /api/settings         — получить настройки
-- POST /api/settings         — сохранить настройки
-- GET  /api/logs             — последние логи (для UI)
-- POST /api/upload/photo     — загрузить фото
-- POST /api/upload/voice     — загрузить голос (wav/mp3)
-- POST /api/generate         — запустить генерацию (возвращает job_id)
-- GET  /api/history          — история генераций
-- DELETE /api/history/{id}   — удалить запись
-- WS   /ws/{job_id}          — прогресс генерации
-- GET  /media/...            — отдача загруженных/сгенерированных файлов
+- GET  /                          — веб-интерфейс
+- GET  /api/status                — статус ComfyUI и окружения
+- POST /api/comfyui/start         — найти и запустить ComfyUI
+- POST /api/comfyui/detect        — только поиск пути
+- GET  /api/settings              — получить настройки
+- POST /api/settings              — сохранить настройки
+- GET  /api/logs                  — последние логи (для UI)
+- POST /api/upload/photo          — загрузить фото
+- POST /api/upload/voice          — загрузить голос (wav/mp3/ogg)
+- POST /api/upload/voice-from-url — загрузить голос по URL (Telegram и т.д.)
+- POST /api/generate              — запустить генерацию (возвращает job_id)
+- GET  /api/history               — история генераций
+- DELETE /api/history/{id}        — удалить запись
+- WS   /ws/{job_id}               — прогресс генерации
+- GET  /media/...                 — отдача загруженных/сгенерированных файлов
 """
 
 from __future__ import annotations
@@ -224,6 +225,61 @@ async def api_upload_photo(file: UploadFile = File(...)) -> Dict:
 async def api_upload_voice(file: UploadFile = File(...)) -> Dict:
     dest = _save_upload(file, UPLOAD_DIR, ALLOWED_AUDIO_EXT, MAX_AUDIO_BYTES)
     return {"path": str(dest), "url": _media_url(str(dest)), "name": dest.name}
+
+
+class UploadFromUrlBody(BaseModel):
+    url: str
+    convert_to_wav: bool = False  # Конвертировать OGG в WAV для совместимости
+
+
+@app.post("/api/upload/voice-from-url")
+async def api_upload_voice_from_url(body: UploadFromUrlBody) -> Dict:
+    """Загружает аудиофайл по URL (например, OGG из Telegram).
+
+    Поддерживает прямые ссылки на аудиофайлы.
+    Если convert_to_wav=true, конвертирует в WAV для лучшей совместимости.
+    """
+    from . import audio_utils, downloader
+
+    url = body.url.strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="URL не может быть пустым")
+
+    # Определяем расширение из URL или используем .ogg по умолчанию
+    url_path = url.split("?")[0] if "?" in url else url  # убираем query параметры
+    ext = Path(url_path).suffix.lower()
+    if not ext or ext not in ALLOWED_AUDIO_EXT:
+        ext = ".ogg"  # по умолчанию OGG для Telegram
+
+    dest = UPLOAD_DIR / f"{uuid.uuid4().hex}{ext}"
+
+    try:
+        logger.info("Загрузка голоса с URL: %s", url)
+        # Используем встроенный downloader для загрузки с поддержкой докачки
+        downloaded = await asyncio.to_thread(downloader.download_with_resume, url, dest)
+
+        # Проверяем размер
+        size = downloaded.stat().st_size
+        if size > MAX_AUDIO_BYTES:
+            downloaded.unlink(missing_ok=True)
+            raise HTTPException(status_code=400, detail="Файл слишком большой")
+
+        # Опционально конвертируем в WAV
+        if body.convert_to_wav and downloaded.suffix.lower() != ".wav":
+            try:
+                downloaded = await asyncio.to_thread(audio_utils.convert_to_wav, downloaded)
+            except Exception as exc:
+                logger.warning("Не удалось конвертировать в WAV: %s (используем оригинальный формат)", exc)
+                # Продолжаем с оригинальным форматом
+
+        logger.info("Загружен голос с URL: %s (%d байт)", downloaded.name, size)
+        return {"path": str(downloaded), "url": _media_url(str(downloaded)), "name": downloaded.name}
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Ошибка при загрузке с URL %s: %s", url, exc)
+        raise HTTPException(status_code=400, detail=f"Ошибка загрузки: {str(exc)}")
 
 
 # --------------------------------------------------------------------------- #
