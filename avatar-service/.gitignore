@@ -1,0 +1,17 @@
+# Виртуальные окружения
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Сгенерированные файлы и загрузки
+storage/uploads/*
+storage/outputs/*
+storage/app.log
+*.part
+
+# Не игнорируем seed-файлы
+!storage/history.json
+!storage/settings.json
+!storage/uploads/.gitkeep
+!storage/outputs/.gitkeep
