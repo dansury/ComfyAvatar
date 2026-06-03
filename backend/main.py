@@ -25,9 +25,11 @@ from __future__ import annotations
 
 import asyncio
 import shutil
+import socket
 import threading
 import uuid
 import webbrowser
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -55,7 +57,28 @@ ALLOWED_AUDIO_EXT = {".wav", ".mp3", ".ogg", ".m4a", ".webm"}
 MAX_IMAGE_BYTES = 25 * 1024 * 1024  # 25 MB
 MAX_AUDIO_BYTES = 50 * 1024 * 1024  # 50 MB
 
-app = FastAPI(title="ComfyAvatar", version="1.0.0")
+# --- Сетевые настройки сервера --------------------------------------------- #
+HOST = "127.0.0.1"
+DEFAULT_PORT = 8000
+# Фактический адрес, на котором поднялся сервер. Выставляется в main() до старта
+# uvicorn, чтобы стартовый хук открыл браузер по правильному порту.
+_server_url = f"http://{HOST}:{DEFAULT_PORT}"
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Старт и остановка приложения (современная замена устаревшему on_event).
+
+    jobs и _open_browser_delayed определены ниже по модулю — имена в теле
+    разрешаются во время запуска, поэтому порядок их определения роли не играет.
+    """
+    jobs.loop = asyncio.get_running_loop()
+    logger.info("ComfyAvatar backend запущен. Frontend: %s", FRONTEND_DIR)
+    _open_browser_delayed(_server_url, delay=1.5)
+    yield
+
+
+app = FastAPI(title="ComfyAvatar", version="1.0.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -116,13 +139,6 @@ def _open_browser_delayed(url: str, delay: float = 1.0) -> None:
     thread.start()
 
 
-@app.on_event("startup")
-async def _capture_loop() -> None:
-    jobs.loop = asyncio.get_running_loop()
-    logger.info("ComfyAvatar backend запущен. Frontend: %s", FRONTEND_DIR)
-    _open_browser_delayed("http://127.0.0.1:8000", delay=1.5)
-
-
 # --------------------------------------------------------------------------- #
 # Утилиты файлов
 # --------------------------------------------------------------------------- #
@@ -171,6 +187,12 @@ async def api_status() -> Dict:
         "comfyui_running": running,
         "settings": history_manager.load_settings(),
     }
+
+
+@app.get("/api/ping")
+async def api_ping() -> Dict:
+    """Лёгкая отметка «я — ComfyAvatar»: позволяет распознать уже запущенный экземпляр."""
+    return {"app": "comfyavatar", "version": app.version}
 
 
 @app.post("/api/comfyui/detect")
@@ -451,13 +473,76 @@ else:  # pragma: no cover
 # --------------------------------------------------------------------------- #
 # Точка входа
 # --------------------------------------------------------------------------- #
+def _port_is_free(host: str, port: int) -> bool:
+    """True, если на (host, port) можно поднять сервер (порт свободен)."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        try:
+            sock.bind((host, port))
+            return True
+        except OSError:
+            return False
+
+
+def _find_free_port(host: str, start_port: int, attempts: int = 20) -> Optional[int]:
+    """Ищет ближайший свободный порт, начиная со start_port."""
+    for candidate in range(start_port, min(start_port + attempts, 65536)):
+        if _port_is_free(host, candidate):
+            return candidate
+    return None
+
+
+def _looks_like_comfyavatar(host: str, port: int) -> bool:
+    """True, если на занятом порту уже отвечает ComfyAvatar (а не чужая программа)."""
+    import json
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(f"http://{host}:{port}/api/ping", timeout=2) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        return isinstance(data, dict) and data.get("app") == "comfyavatar"
+    except Exception:  # noqa: BLE001 — любая ошибка означает «это не наш сервер»
+        return False
+
+
 def main() -> None:
+    import os
+
     import uvicorn
 
-    host = "127.0.0.1"
-    port = 8000
+    global _server_url
+
+    host = os.environ.get("COMFYAVATAR_HOST", HOST)
+    try:
+        port = int(os.environ.get("COMFYAVATAR_PORT", str(DEFAULT_PORT)))
+    except ValueError:
+        port = DEFAULT_PORT
+
+    # Порт уже занят? Не падаем с непонятной ошибкой (Windows 10048),
+    # а разбираемся, в чём дело, и подсказываем пользователю.
+    if not _port_is_free(host, port):
+        # Частый случай: start.bat запустили дважды и ComfyAvatar уже работает.
+        if _looks_like_comfyavatar(host, port):
+            url = f"http://{host}:{port}"
+            logger.info("=" * 60)
+            logger.info("ComfyAvatar уже запущен на %s", url)
+            logger.info("Открываю его в браузере — запускать второй раз не нужно.")
+            logger.info("=" * 60)
+            webbrowser.open(url)
+            return
+        # Порт занят другой программой — берём ближайший свободный.
+        alt_port = _find_free_port(host, port + 1)
+        if alt_port is None:
+            logger.error("=" * 60)
+            logger.error("Порт %d занят, и свободный порт рядом не найден.", port)
+            logger.error("Закройте программу, которая занимает порт %d, и запустите снова.", port)
+            logger.error("=" * 60)
+            raise SystemExit(1)
+        logger.warning("Порт %d занят другой программой — использую свободный порт %d.", port, alt_port)
+        port = alt_port
+
+    _server_url = f"http://{host}:{port}"
     logger.info("=" * 60)
-    logger.info("ComfyAvatar запускается на http://%s:%d", host, port)
+    logger.info("ComfyAvatar запускается на %s", _server_url)
     logger.info("Откройте этот адрес в браузере.")
     logger.info("=" * 60)
     uvicorn.run(app, host=host, port=port, log_level="info")
