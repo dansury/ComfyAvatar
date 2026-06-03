@@ -12,6 +12,7 @@ pydantic>=2.6
 # --- TTS: Coqui XTTS v2 (клонирование голоса) ---
 # torch ставится отдельно под вашу CUDA/CPU: https://pytorch.org/get-started/locally/
 torch>=2.1
+torchaudio>=2.1
 coqui-tts>=0.24.0          # активный форк Coqui TTS (импортируется как `TTS`)
 soundfile>=0.12
 numpy>=1.24
