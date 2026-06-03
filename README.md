@@ -123,6 +123,11 @@ avatar-service/
 - **«ComfyUI не найден»** — укажите путь в ⚙️ Настройках или установите ComfyUI.
 - **«Движок TTS недоступен»** — не установлены `torch`/`coqui-tts`; поставьте их
   из `requirements.txt`.
+- **«cannot import name 'isin_mps_friendly' from 'transformers.pytorch_utils'»** —
+  установлен `transformers` 5.x, в котором эта функция удалена, а XTTS на неё
+  опирается. Переустановите зависимости (`pip install -r requirements.txt`) —
+  они зафиксированы на `transformers<5.0`. Если версия не понизилась, выполните
+  вручную: `pip install "transformers>=4.43,<5.0"`.
 - **Видео не сгенерировалось** — убедитесь, что в ComfyUI установлены ноды
   SadTalker и VideoHelperSuite; подробности смотрите в блоке **Логи** на странице.
 - Любую ошибку можно скопировать кнопкой **«Копировать»** в разделе «Логи».

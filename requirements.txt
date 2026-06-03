@@ -14,6 +14,10 @@ pydantic>=2.6
 torch>=2.1
 torchaudio>=2.1
 coqui-tts>=0.24.0          # активный форк Coqui TTS (импортируется как `TTS`)
+# transformers 5.x удалил функцию `isin_mps_friendly`, на которую опирается XTTS,
+# из-за чего падает импорт: "cannot import name 'isin_mps_friendly'".
+# Фиксируем ветку 4.x (последняя совместимая — 4.57.x).
+transformers>=4.43,<5.0
 soundfile>=0.12
 numpy>=1.24
 
