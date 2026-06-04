@@ -1,21 +1,114 @@
 {
-  "last_node_id": 5,
-  "last_link_id": 3,
+  "last_node_id": 9,
+  "last_link_id": 6,
   "nodes": [
     {
       "id": 1,
-      "type": "LoadImage",
-      "pos": [60, 120],
-      "size": [320, 320],
+      "type": "LoadAudioPath",
+      "pos": [40, 120],
+      "size": [300, 80],
       "flags": {},
       "order": 0,
       "mode": 0,
       "inputs": [],
       "outputs": [
         {
+          "name": "AUDIOPATH",
+          "type": "AUDIOPATH",
+          "links": [1],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadAudioPath"
+      },
+      "widgets_values": ["manner.wav"],
+      "title": "1. Референс манеры речи ▼ (LoadAudioPath)"
+    },
+    {
+      "id": 2,
+      "type": "XTTS_INFER",
+      "pos": [40, 250],
+      "size": [320, 260],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIOPATH",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIOPATH",
+          "type": "AUDIOPATH",
+          "links": [2, 3],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "XTTS_INFER"
+      },
+      "widgets_values": ["Привет! Это мой говорящий AI-аватар.", "ru", 0.65, 1.0, 2.0, 50, 0.8, 1.0],
+      "title": "2. Озвучка XTTS (language ▼)"
+    },
+    {
+      "id": 3,
+      "type": "ComfyAvatarVoiceBridge",
+      "pos": [400, 250],
+      "size": [320, 110],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio_path",
+          "type": "AUDIOPATH",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [4],
+          "slot_index": 0
+        },
+        {
+          "name": "audio_path",
+          "type": "Audio_Path",
+          "links": null,
+          "slot_index": 1
+        },
+        {
+          "name": "filename",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ComfyAvatarVoiceBridge"
+      },
+      "widgets_values": ["comfyavatar_voice.wav", "input"],
+      "title": "3. Мост XTTS→AUDIO + запись input/comfyavatar_voice.wav"
+    },
+    {
+      "id": 4,
+      "type": "LoadImage",
+      "pos": [400, 420],
+      "size": [320, 320],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
           "name": "IMAGE",
           "type": "IMAGE",
-          "links": [1],
+          "links": [5],
           "slot_index": 0
         },
         {
@@ -29,49 +122,26 @@
         "Node name for S&R": "LoadImage"
       },
       "widgets_values": ["avatar.png", "image"],
-      "title": "Фото аватара (LoadImage)"
+      "title": "4. Фото аватара (LoadImage)"
     },
     {
-      "id": 2,
-      "type": "LoadAudio",
-      "pos": [60, 500],
-      "size": [320, 130],
-      "flags": {},
-      "order": 1,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "AUDIO",
-          "type": "AUDIO",
-          "links": [2],
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadAudio"
-      },
-      "widgets_values": ["voice.wav"],
-      "title": "Голос — нативный AUDIO (LoadAudio)"
-    },
-    {
-      "id": 3,
+      "id": 5,
       "type": "SadTalker",
-      "pos": [460, 160],
+      "pos": [770, 120],
       "size": [360, 360],
       "flags": {},
-      "order": 2,
+      "order": 4,
       "mode": 0,
       "inputs": [
         {
           "name": "image",
           "type": "IMAGE",
-          "link": 1
+          "link": 5
         },
         {
           "name": "audio",
           "type": "AUDIO",
-          "link": 2
+          "link": 4
         },
         {
           "name": "refVideo",
@@ -89,7 +159,7 @@
         {
           "name": "show_video_path",
           "type": "STRING",
-          "links": [3],
+          "links": [6],
           "slot_index": 1
         }
       ],
@@ -97,21 +167,21 @@
         "Node name for S&R": "SadTalker"
       },
       "widgets_values": [0, "512", "crop", false, 2, true, false, 5, false, "pose"],
-      "title": "SadTalker (faceModelResolution ▼ / preprocess ▼ / refInfo ▼)"
+      "title": "5. SadTalker (faceModelResolution ▼ / preprocess ▼ / refInfo ▼)"
     },
     {
-      "id": 4,
+      "id": 6,
       "type": "ShowVideo",
-      "pos": [900, 160],
+      "pos": [1170, 120],
       "size": [320, 280],
       "flags": {},
-      "order": 3,
+      "order": 5,
       "mode": 0,
       "inputs": [
         {
-          "name": "video_path",
+          "name": "show_video_path",
           "type": "STRING",
-          "link": 3
+          "link": 6
         }
       ],
       "outputs": [],
@@ -119,35 +189,91 @@
         "Node name for S&R": "ShowVideo"
       },
       "widgets_values": [],
-      "title": "Превью видео (ShowVideo)"
+      "title": "6. Превью видео (ShowVideo)"
     },
     {
-      "id": 5,
-      "type": "Note",
-      "pos": [460, 560],
-      "size": [360, 300],
+      "id": 7,
+      "type": "PreViewAudio",
+      "pos": [40, 560],
+      "size": [320, 120],
       "flags": {},
-      "order": 4,
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIOPATH",
+          "link": 3
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreViewAudio"
+      },
+      "widgets_values": [],
+      "title": "Прослушать озвучку (PreViewAudio)"
+    },
+    {
+      "id": 8,
+      "type": "Note",
+      "pos": [770, 500],
+      "size": [360, 290],
+      "flags": {},
+      "order": 7,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "НОДА: SadTalker (репозиторий haomole/Comfyui-SadTalker).\nSadTalker сам сохраняет MP4 и отдаёт путь video_path —\nVHS_VideoCombine НЕ нужен.\n\nФОРМАТЫ\n• image (LoadImage): PNG/JPG, лицо анфас, квадрат,\n  лучше >=512px, видны глаза и рот.\n• audio (LoadAudio, нативный AUDIO): WAV/MP3 из папки\n  ComfyUI/input, моно, чистая речь.\n\nВЫПАДАЮЩИЕ СПИСКИ ▼ на ноде SadTalker\n• faceModelResolution: 256 / 512\n• preprocess: crop / resize / full / extcrop / extfull\n• refInfo: pose / blink / pose+blink / all\n• gfpganAsFaceEnhancer (bool) — чище лицо, но дольше.\n\nКЛОН ГОЛОСА: сгенерируйте WAV в xtts_voice_clone.json,\nположите его в ComfyUI/input и выберите в LoadAudio."
+        "ФОРМАТЫ\n• Референс (LoadAudioPath): файл из ComfyUI/input,\n  ТОЛЬКО wav/mp3/flac/m4a (ogg НЕ поддерживается —\n  сконвертируйте в wav). 6-20 c чистой моно-речи.\n• Фото (LoadImage): PNG/JPG, лицо анфас, квадрат,\n  >=512px, видны глаза и рот.\n\nВЫПАДАЮЩИЕ СПИСКИ ▼\n• XTTS language: en/ru/es/.../zh-cn/ja/ko/hi.\n• SadTalker: faceModelResolution 256/512,\n  preprocess crop/resize/full/extcrop/extfull,\n  refInfo pose/blink/pose+blink/all.\n\nАВТО-ПЕРЕДАЧА: нода ComfyAvatarVoiceBridge сама\nотдаёт XTTS-звук в SadTalker как AUDIO и заодно\nпишет input/comfyavatar_voice.wav. Ручное\nкопирование не нужно. SadTalker сам сохраняет MP4."
       ],
-      "title": "ℹ️ Форматы, модели, заметки"
+      "title": "ℹ️ Форматы, дропдауны, авто-передача"
+    },
+    {
+      "id": 9,
+      "type": "Note",
+      "pos": [1170, 420],
+      "size": [320, 320],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "ЧТО СКАЧАТЬ\n\nComfyUI-XTTS: модель coqui/XTTS-v2 скачивается\nавтоматически с HuggingFace при первом запуске\n(нужен интернет однократно).\n\nSadTalker (haomole/Comfyui-SadTalker):\n• чекпойнты в custom_nodes/Comfyui-SadTalker/\n  SadTalker/checkpoints/:\n  SadTalker_V0.0.2_256.safetensors,\n  SadTalker_V0.0.2_512.safetensors,\n  mapping_00109-model.pth.tar,\n  mapping_00229-model.pth.tar\n• GFPGAN-веса в (корень ComfyUI)/gfpgan/weights/:\n  GFPGANv1.4.pth, detection_Resnet50_Final.pth,\n  parsing_parsenet.pth, alignment_WFLW_4HG.pth\n  (источник: github.com/OpenTalker/SadTalker)\n\nНОДА-МОСТ: скопируйте папку\ncomfyui/ComfyUI-ComfyAvatar в ComfyUI/custom_nodes\nи перезапустите ComfyUI."
+      ],
+      "title": "ℹ️ Что и куда скачать"
     }
   ],
   "links": [
-    [1, 1, 0, 3, 0, "IMAGE"],
-    [2, 2, 0, 3, 1, "AUDIO"],
-    [3, 3, 1, 4, 0, "STRING"]
+    [1, 1, 0, 2, 0, "AUDIOPATH"],
+    [2, 2, 0, 3, 0, "AUDIOPATH"],
+    [3, 2, 0, 7, 0, "AUDIOPATH"],
+    [4, 3, 0, 5, 1, "AUDIO"],
+    [5, 4, 0, 5, 0, "IMAGE"],
+    [6, 5, 1, 6, 0, "STRING"]
   ],
-  "groups": [],
+  "groups": [
+    {
+      "title": "Озвучка (XTTS) + авто-мост",
+      "bounding": [20, 50, 720, 660],
+      "color": "#3f789e",
+      "font_size": 20,
+      "flags": {}
+    },
+    {
+      "title": "Аватар (SadTalker)",
+      "bounding": [760, 50, 740, 460],
+      "color": "#a1309b",
+      "font_size": 20,
+      "flags": {}
+    }
+  ],
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.9,
+      "scale": 0.8,
       "offset": [0, 0]
     }
   },

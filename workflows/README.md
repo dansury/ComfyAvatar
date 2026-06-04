@@ -1,111 +1,98 @@
 # 🧩 Workflow для ComfyUI
 
-Готовые графы в формате интерфейса ComfyUI — открываются перетаскиванием в окно
-ComfyUI. Имена нод и сигнатуры **сверены с исходниками** реальных расширений
-(см. «Источники» внизу).
+Готовые графы в формате интерфейса ComfyUI — открываются перетаскиванием в окно.
+**Все ноды сверены с исходниками** соответствующих расширений (таблица ниже),
+непровалидированных нод нет.
 
-## ⚠️ Главное про совместимость
+## 🔌 Авто-передача озвучки (без ручного копирования WAV)
 
-Эти расширения создавались независимо и **по-разному типизируют аудио**, поэтому
-единый граф «текст → озвучка → говорящий аватар» из них **не собирается напрямую**:
+`XTTS_INFER` отдаёт тип `AUDIOPATH` (путь к WAV со случайным именем
+`{timestamp}_xtts.wav`), который **не стыкуется** напрямую с `SadTalker` (нужен
+`AUDIO`) и `AniPortrait` (нужен `Audio_Path`). Поэтому в проект добавлена
+маленькая нода-мост **`ComfyAvatarVoiceBridge`** (папка
+`comfyui/ComfyUI-ComfyAvatar`), которая:
 
-| Этап | Расширение | Тип аудио |
-|------|-----------|-----------|
-| Озвучка | `ComfyUI-XTTS` | отдаёт `AUDIOPATH` (путь к WAV) |
-| SadTalker | `Comfyui-SadTalker` | ждёт нативный `AUDIO` |
-| AniPortrait | `ComfyUI_Aniportrait` | ждёт путь `Audio_Path` |
+- копирует WAV под фиксированным именем `input/comfyavatar_voice.wav`;
+- отдаёт то же аудио сразу как `AUDIO` и как `Audio_Path`.
 
-Поэтому конвейер собирается **в два шага** (через WAV-файл на диске), а не одним
-графом — см. ниже.
+Благодаря ей каждый граф ниже — **единый конвейер «текст → клон голоса → видео»**,
+ручная передача файла не нужна.
+
+> Установка ноды-моста: скопируйте `comfyui/ComfyUI-ComfyAvatar` в
+> `<ComfyUI>/custom_nodes/` и перезапустите ComfyUI (см. её README).
 
 ---
 
 ## Файлы
 
-### 1. `xtts_voice_clone.json` — озвучка с клоном голоса (этап 1)
+| Файл | Конвейер |
+|------|----------|
+| `xtts_voice_clone.json` | Только озвучка: `LoadAudioPath → XTTS_INFER → PreViewAudio` + запись фикс. файла мостом |
+| `sadtalker_avatar.json` | `LoadAudioPath → XTTS_INFER → Bridge → SadTalker → ShowVideo` |
+| `aniportrait_avatar_full.json` | `… → Bridge → AniPortrait_Audio2Video → VHS_VideoCombine` (+ опц. face reenactment) |
 
-`LoadAudioPath → XTTS_INFER → PreViewAudio`. Берёт референс манеры речи и текст,
-синтезирует WAV в `ComfyUI/output`. Выпадающий список `language` (17 языков).
-
-### 2. `sadtalker_avatar.json` — говорящий аватар (этап 2, SadTalker)
-
-`LoadImage + LoadAudio → SadTalker → ShowVideo`.
-**SadTalker сам сохраняет MP4** и возвращает `video_path` — `VHS_VideoCombine`
-не нужен. Аудио — нативный `AUDIO` (нода `LoadAudio` ядра ComfyUI).
-Дропдауны на ноде: `faceModelResolution` (256/512), `preprocess`, `refInfo`,
-переключатель `gfpganAsFaceEnhancer`.
-
-### 3. `aniportrait_avatar_full.json` — говорящий аватар (этап 2, AniPortrait)
-
-Зеркало официального `assets/audio2video_workflow.json`:
-`LoadImage + VHS_LoadVideo(pose) + AniPortrait_Audio_Path → AniPortrait_Audio2Video
-→ VHS_VHSAudioToAudio → VHS_VideoCombine`.
-
-- **Pose-driven** — встроен: движение головы задаёт pose-видео (`VHS_LoadVideo`).
-- **Face reenactment** *(опц., Bypass)* — нода `AniPortrait_Pose_Gen_Video`
-  переносит мимику с кадров драйвер-видео на портрет.
-- **Выбор моделей** — выпадающие списки прямо на ноде `Audio2Video`
-  (`vae`, `base_model`, `motion_module`, `image_encoder`,
-  `denoising_unet`, `reference_unet`, `pose_guider` из папки `pretrained_model`).
-
-> ⚠️ Виджеты AniPortrait заметно «дрейфуют» между версиями. Для гарантии
-> загрузите официальный пример из репозитория (см. источники) и подставьте свои
-> входы.
+- **SadTalker** сам сохраняет MP4 (отдаёт `video_path`) — `VHS_VideoCombine` ему не нужен.
+- **AniPortrait**: движение головы задаёт pose-видео (`VHS_LoadVideo`); опциональная
+  нода `AniPortrait_Pose_Gen_Video` (Bypass) переносит мимику с драйвер-видео.
+- **Выбор моделей** — выпадающие списки прямо на нодах (XTTS `language`; SadTalker
+  `faceModelResolution`/`preprocess`/`refInfo`; AniPortrait `vae`/`base_model`/
+  `motion_module`/`image_encoder`/`denoising_unet`/`reference_unet`/`pose_guider`).
 
 ---
 
-## Как собрать полный конвейер (2 шага)
+## ⬇️ Что нужно скачать (по нодам)
 
-1. **Озвучка:** откройте `xtts_voice_clone.json`, задайте референс (`.ogg`/`.wav`)
-   и текст → Queue Prompt. Получите WAV в `ComfyUI/output`. При желании скопируйте
-   его в `ComfyUI/input`.
-2. **Аватар:**
-   - **SadTalker:** в `sadtalker_avatar.json` выберите этот WAV в `LoadAudio`.
-   - **или AniPortrait:** в `aniportrait_avatar_full.json` укажите путь к WAV в
-     виджете `audio_file_path` ноды `AniPortrait_Audio_Path`.
+Подсказки продублированы в Note-нодах внутри каждого графа.
+
+### ComfyUI-XTTS
+- Модель **`coqui/XTTS-v2`** скачивается **автоматически** с HuggingFace при
+  первом запуске (нужен интернет однократно).
+
+### Comfyui-SadTalker
+- Чекпойнты → `custom_nodes/Comfyui-SadTalker/SadTalker/checkpoints/`:
+  `SadTalker_V0.0.2_256.safetensors`, `SadTalker_V0.0.2_512.safetensors`,
+  `mapping_00109-model.pth.tar`, `mapping_00229-model.pth.tar`.
+- GFPGAN-веса → `<ComfyUI>/gfpgan/weights/`:
+  `GFPGANv1.4.pth`, `detection_Resnet50_Final.pth`, `parsing_parsenet.pth`,
+  `alignment_WFLW_4HG.pth`. Источник: `github.com/OpenTalker/SadTalker`.
+
+### ComfyUI_Aniportrait → `custom_nodes/ComfyUI_Aniportrait/pretrained_model/`
+- `stable-diffusion-v1-5/` — `runwayml/stable-diffusion-v1-5`
+- `sd-vae-ft-mse/` — `stabilityai/sd-vae-ft-mse`
+- `image_encoder/` — `lambdalabs/sd-image-variations-diffusers`
+- `wav2vec2-base-960h/` — `facebook/wav2vec2-base-960h`
+- веса AniPortrait (`denoising_unet.pth`, `reference_unet.pth`, `motion_module.pth`,
+  `pose_guider.pth`, `audio2mesh.pt`, `audio2pose.pt`, `film_net_fp16.pt`) —
+  HuggingFace `ZJYang/AniPortrait`.
+
+### Нода-мост
+- `comfyui/ComfyUI-ComfyAvatar` → `<ComfyUI>/custom_nodes/`.
 
 ---
 
-## Рекомендации по форматам
+## 📋 Форматы входов/выходов
 
 | Что | Формат | Лучше всего | Ограничения |
 |-----|--------|-------------|-------------|
-| Фото/портрет | PNG / JPG | Лицо анфас, квадрат, ≥512px, видны глаза и рот | Профиль, очки, чёлка, поворот ухудшают результат |
-| Референс голоса (XTTS) | WAV / OGG / MP3 | 6–20 с чистой речи одного диктора, моно, 16–24 кГц | Шум/музыка/несколько голосов ломают клон |
-| Pose/драйвер видео (AniPortrait) | MP4 / MOV | Одно лицо, стабильный план, тот же ракурс | Длинное видео = долго и много VRAM |
+| Референс голоса (LoadAudioPath) | **WAV / MP3 / FLAC / M4A** | 6–20 с чистой моно-речи, 16–24 кГц, из `ComfyUI/input` | **OGG не поддерживается** — конвертируйте в WAV |
+| Фото/портрет | PNG / JPG | Лицо анфас, квадрат, ≥512px, видны глаза и рот | Профиль/очки/чёлка/поворот ухудшают результат |
+| Pose/драйвер видео | MP4 / MOV | Одно лицо, стабильный план, тот же ракурс | Длинное видео = долго и много VRAM |
 | Выход | MP4 (H.264) | `crf` 17 ≈ высокое качество | Меньше `crf` = больше файл |
 
-Эти подсказки продублированы в **Note-нодах** внутри каждого графа.
-
 ---
 
-## Управление качеством
+## ✅ Сверенные ноды и источники
 
-- **SadTalker:** `faceModelResolution` 256/512, `gfpganAsFaceEnhancer` (чище лицо).
-- **AniPortrait:** `width`/`height` (512 база; больше = чётче и медленнее),
-  `steps`, `cfg`.
-- **VHS_VideoCombine:** `crf` (меньше = чётче), `format` = `video/h264-mp4`.
+| Нода (тип) | Расширение | Статус |
+|-----------|-----------|--------|
+| `LoadImage`, `Note` | ядро ComfyUI | ✅ |
+| `LoadAudioPath`, `XTTS_INFER`, `PreViewAudio` | [ComfyUI-XTTS](https://github.com/AIFSH/ComfyUI-XTTS) | ✅ |
+| `SadTalker`, `ShowVideo` | [Comfyui-SadTalker](https://github.com/haomole/Comfyui-SadTalker) | ✅ |
+| `AniPortrait_Audio2Video`, `AniPortrait_Pose_Gen_Video` | [ComfyUI_Aniportrait](https://github.com/frankchieng/ComfyUI_Aniportrait) | ✅ |
+| `VHS_LoadVideo`, `VHS_VideoCombine` | [VideoHelperSuite](https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite) | ✅ |
+| `ComfyAvatarVoiceBridge`, `ComfyAvatarLoadVoice` | `comfyui/ComfyUI-ComfyAvatar` (этот репозиторий) | ✅ |
 
----
-
-## Требуемые расширения и точные имена нод
-
-| Нода (тип) | Расширение |
-|-----------|-----------|
-| `SadTalker`, `ShowVideo`, `LoadAudio` | `Comfyui-SadTalker` (+ ядро ComfyUI) |
-| `XTTS_INFER`, `LoadAudioPath`, `PreViewAudio` | `ComfyUI-XTTS` |
-| `AniPortrait_Audio2Video`, `AniPortrait_Audio_Path`, `AniPortrait_Pose_Gen_Video` | `ComfyUI_Aniportrait` |
-| `VHS_LoadVideo`, `VHS_VHSAudioToAudio`, `VHS_VideoCombine` | `ComfyUI-VideoHelperSuite` |
-| `Note` | ядро ComfyUI |
-
-Если нода красная — установите расширение через **ComfyUI Manager**.
-
----
-
-## Источники (сверка нод)
-
-- SadTalker: https://github.com/haomole/Comfyui-SadTalker
-- XTTS: https://github.com/AIFSH/ComfyUI-XTTS
-- AniPortrait: https://github.com/frankchieng/ComfyUI_Aniportrait
-  (примеры: `assets/audio2video_workflow.json`, `assets/face_reenacment_workflow.json`)
-- VideoHelperSuite: https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite
+> ⚠️ У AniPortrait значения виджетов-моделей **дрейфуют между версиями**. Сами
+> ноды и типы валидны; если значение по умолчанию не совпало с вашими файлами —
+> просто выберите нужное в выпадающем списке. Для точного примера можно загрузить
+> официальный `assets/audio2video_workflow.json` из их репозитория.
