@@ -1,0 +1,118 @@
+{
+  "last_node_id": 4,
+  "last_link_id": 2,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadAudioPath",
+      "pos": [60, 160],
+      "size": [320, 100],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "AUDIOPATH",
+          "type": "AUDIOPATH",
+          "links": [1],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadAudioPath"
+      },
+      "widgets_values": ["manner.ogg"],
+      "title": "Референс манеры речи ▼ (LoadAudioPath)"
+    },
+    {
+      "id": 2,
+      "type": "XTTS_INFER",
+      "pos": [460, 120],
+      "size": [360, 280],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIOPATH",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIOPATH",
+          "type": "AUDIOPATH",
+          "links": [2],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "XTTS_INFER"
+      },
+      "widgets_values": [
+        "Привет! Это мой говорящий AI-аватар.",
+        "ru",
+        0.65,
+        1.0,
+        2.0,
+        50,
+        0.8,
+        1.0
+      ],
+      "title": "Озвучка XTTS (language ▼, клон голоса)"
+    },
+    {
+      "id": 3,
+      "type": "PreViewAudio",
+      "pos": [900, 120],
+      "size": [320, 120],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIOPATH",
+          "link": 2
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreViewAudio"
+      },
+      "widgets_values": [],
+      "title": "Прослушать результат (PreViewAudio)"
+    },
+    {
+      "id": 4,
+      "type": "Note",
+      "pos": [460, 440],
+      "size": [360, 280],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "НОДЫ: AIFSH/ComfyUI-XTTS (XTTS_INFER, LoadAudioPath,\nPreViewAudio).\n\nФОРМАТЫ\n• Референс (LoadAudioPath): WAV/OGG/MP3 из папки\n  ComfyUI/input, 6-20 c чистой речи одного диктора,\n  моно, 16-24 кГц, без музыки и шума.\n• Текст: виджет text на ноде XTTS_INFER.\n• language ▼: en, es, fr, de, it, pt, pl, tr, ru, nl,\n  cs, ar, zh-cn, ja, hu, ko, hi.\n\nВЫХОД\n• Тип AUDIOPATH — путь к сгенерированному WAV в\n  ComfyUI/output.\n\nДАЛЬШЕ (важно — разные типы аудио!)\n• SadTalker ждёт нативный AUDIO: возьмите этот WAV в\n  его ноде LoadAudio.\n• AniPortrait ждёт путь Audio_Path: укажите путь к\n  этому WAV в виджете AniPortrait_Audio_Path.\nНапрямую AUDIOPATH к ним НЕ подключается."
+      ],
+      "title": "ℹ️ XTTS: форматы, выход, как стыковать"
+    }
+  ],
+  "links": [
+    [1, 1, 0, 2, 0, "AUDIOPATH"],
+    [2, 2, 0, 3, 0, "AUDIOPATH"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.9,
+      "offset": [0, 0]
+    }
+  },
+  "version": 0.4
+}

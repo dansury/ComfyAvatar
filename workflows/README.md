@@ -1,113 +1,111 @@
 # 🧩 Workflow для ComfyUI
 
-Здесь лежат готовые графы в формате интерфейса ComfyUI — их можно открыть прямо
-в самом ComfyUI и запустить вручную, без веб-сервиса ComfyAvatar.
+Готовые графы в формате интерфейса ComfyUI — открываются перетаскиванием в окно
+ComfyUI. Имена нод и сигнатуры **сверены с исходниками** реальных расширений
+(см. «Источники» внизу).
 
-Во всех графах:
+## ⚠️ Главное про совместимость
 
-- 🎚️ **Модели выбираются выпадающими списками ▼** (на нодах-загрузчиках и на
-  нодах с combo-параметрами — `model`, `language`, `vae`, `wav2vec`, `enhancer`,
-  `preprocess`, модель апскейла и т.д.).
-- 🗒️ Есть **жёлтые Note-ноды с подсказками**: какие форматы входных/выходных
-  файлов заходят лучше всего и какие есть ограничения.
+Эти расширения создавались независимо и **по-разному типизируют аудио**, поэтому
+единый граф «текст → озвучка → говорящий аватар» из них **не собирается напрямую**:
+
+| Этап | Расширение | Тип аудио |
+|------|-----------|-----------|
+| Озвучка | `ComfyUI-XTTS` | отдаёт `AUDIOPATH` (путь к WAV) |
+| SadTalker | `Comfyui-SadTalker` | ждёт нативный `AUDIO` |
+| AniPortrait | `ComfyUI_Aniportrait` | ждёт путь `Audio_Path` |
+
+Поэтому конвейер собирается **в два шага** (через WAV-файл на диске), а не одним
+графом — см. ниже.
 
 ---
 
 ## Файлы
 
-### 1. `talking_avatar_full.json` — SadTalker + XTTS (рекомендуется)
+### 1. `xtts_voice_clone.json` — озвучка с клоном голоса (этап 1)
 
-Текст → озвучка XTTS с клонированием голоса по референсу → анимация фото
-(SadTalker) → сведение в MP4 → выбор качества / опциональный апскейл.
+`LoadAudioPath → XTTS_INFER → PreViewAudio`. Берёт референс манеры речи и текст,
+синтезирует WAV в `ComfyUI/output`. Выпадающий список `language` (17 языков).
 
-```
-Текст ───────────────┐
-Манера речи (.ogg) ──┤▶ XTTS ─┬─▶ SadTalker ─▶ [Upscale*] ─▶ VHS_VideoCombine ─▶ MP4
-Фото ──────────────────────────┘   audio ───────────────────────▲
-```
+### 2. `sadtalker_avatar.json` — говорящий аватар (этап 2, SadTalker)
 
-### 2. `aniportrait_avatar_full.json` — AniPortrait (полный конвейер)
+`LoadImage + LoadAudio → SadTalker → ShowVideo`.
+**SadTalker сам сохраняет MP4** и возвращает `video_path` — `VHS_VideoCombine`
+не нужен. Аудио — нативный `AUDIO` (нода `LoadAudio` ядра ComfyUI).
+Дропдауны на ноде: `faceModelResolution` (256/512), `preprocess`, `refInfo`,
+переключатель `gfpganAsFaceEnhancer`.
 
-То же начало (текст + манера речи → XTTS), но анимация через **AniPortrait** с
-двумя **опциональными** режимами:
+### 3. `aniportrait_avatar_full.json` — говорящий аватар (этап 2, AniPortrait)
 
-```
-                          ┌─ (осн.)  AniPortrait Audio2Video ──┐
-Текст ──┐                 │                                    │
-Манера ─┤▶ XTTS ─ audio ──┤  (опц.)  AniPortrait Pose2Video    ├─▶ [Upscale*] ─▶ MP4
-Портрет ┘  └─ audio ─────▶│  (опц.)  AniPortrait FaceReenact ──┘        ▲
-                          │                                    audio ───┘
-   Pose-видео (опц.) ─────┘   Драйвер-видео мимики (опц.)
-```
+Зеркало официального `assets/audio2video_workflow.json`:
+`LoadImage + VHS_LoadVideo(pose) + AniPortrait_Audio_Path → AniPortrait_Audio2Video
+→ VHS_VHSAudioToAudio → VHS_VideoCombine`.
 
-- **Audio2Video** — основной путь (по аудио из XTTS), включён по умолчанию.
-- **Pose2Video** *(опционально, Bypass)* — управление движением головы по
-  **референсному pose-видео**.
-- **FaceReenact** *(опционально, Bypass)* — **перенос мимики** с драйвер-видео
-  на исходный портрет.
+- **Pose-driven** — встроен: движение головы задаёт pose-видео (`VHS_LoadVideo`).
+- **Face reenactment** *(опц., Bypass)* — нода `AniPortrait_Pose_Gen_Video`
+  переносит мимику с кадров драйвер-видео на портрет.
+- **Выбор моделей** — выпадающие списки прямо на ноде `Audio2Video`
+  (`vae`, `base_model`, `motion_module`, `image_encoder`,
+  `denoising_unet`, `reference_unet`, `pose_guider` из папки `pretrained_model`).
 
-### 3. `sadtalker_avatar.json` — базовый граф
-
-Упрощённый вариант без TTS: готовое аудио подаётся напрямую
-(`LoadImage → SadTalker ← LoadAudio → VHS_VideoCombine`). Совпадает с тем, что
-backend отправляет в ComfyUI (`backend/comfy_utils.py → build_sadtalker_workflow`).
+> ⚠️ Виджеты AniPortrait заметно «дрейфуют» между версиями. Для гарантии
+> загрузите официальный пример из репозитория (см. источники) и подставьте свои
+> входы.
 
 ---
 
-## Как открыть в ComfyUI
+## Как собрать полный конвейер (2 шага)
 
-1. Запустите ComfyUI (portable: `run_nvidia_gpu.bat`, либо порт `8188`).
-2. **Перетащите** нужный `.json` в окно ComfyUI
-   (или меню **Workflow → Open** / иконка папки на панели).
-3. В выпадающих списках ▼ выберите модели (они должны быть установлены).
-4. Заполните входы (см. жёлтые Note-ноды прямо в графе):
-   - **Фото/портрет** (`LoadImage`);
-   - **Текст для озвучки** (`Text Multiline`);
-   - **Манера речи** (`LoadAudio`) — короткий образец голоса `.ogg`/`.wav`.
-5. Нажмите **Queue Prompt** — итоговое видео сохранится через `VHS_VideoCombine`.
+1. **Озвучка:** откройте `xtts_voice_clone.json`, задайте референс (`.ogg`/`.wav`)
+   и текст → Queue Prompt. Получите WAV в `ComfyUI/output`. При желании скопируйте
+   его в `ComfyUI/input`.
+2. **Аватар:**
+   - **SadTalker:** в `sadtalker_avatar.json` выберите этот WAV в `LoadAudio`.
+   - **или AniPortrait:** в `aniportrait_avatar_full.json` укажите путь к WAV в
+     виджете `audio_file_path` ноды `AniPortrait_Audio_Path`.
 
 ---
 
-## Рекомендации по форматам входов/выходов
+## Рекомендации по форматам
 
 | Что | Формат | Лучше всего | Ограничения |
 |-----|--------|-------------|-------------|
-| Фото/портрет | PNG / JPG | Лицо анфас, квадрат, ≥512px, видно глаза и рот | Профиль, очки, чёлка на глаза, сильный поворот ухудшают результат |
-| Референс голоса (XTTS) | WAV / OGG | 6–20 с чистой речи одного диктора, моно, 16–24 кГц | Шум/музыка/несколько голосов ломают клон |
-| Текст | UTF-8 | На языке из виджета `language` | Без эмодзи; длинный текст бьётся на предложения |
-| Pose/Driving видео (AniPortrait) | MP4 / MOV | Одно лицо, стабильный план, тот же ракурс, 25 fps | Длинное видео = долго и много VRAM |
+| Фото/портрет | PNG / JPG | Лицо анфас, квадрат, ≥512px, видны глаза и рот | Профиль, очки, чёлка, поворот ухудшают результат |
+| Референс голоса (XTTS) | WAV / OGG / MP3 | 6–20 с чистой речи одного диктора, моно, 16–24 кГц | Шум/музыка/несколько голосов ломают клон |
+| Pose/драйвер видео (AniPortrait) | MP4 / MOV | Одно лицо, стабильный план, тот же ракурс | Длинное видео = долго и много VRAM |
 | Выход | MP4 (H.264) | `crf` 17 ≈ высокое качество | Меньше `crf` = больше файл |
 
-Эти же подсказки продублированы в **Note-нодах** внутри каждого графа.
+Эти подсказки продублированы в **Note-нодах** внутри каждого графа.
 
 ---
 
 ## Управление качеством
 
-- **SadTalker**: `size` `256`/`512`, `enhancer` `None`/`gfpgan`/`RestoreFormer`.
-- **AniPortrait**: `width`/`height` (512 — база, больше = чётче и медленнее),
-  `steps`/`cfg`.
-- **Опциональный апскейл** (`UpscaleModelLoader` + `ImageUpscaleWithModel`): по
-  умолчанию в режиме **Bypass**. Чтобы включить — выделите ноду апскейла и снимите
-  Bypass (`Ctrl+B`), и положите модель (например `RealESRGAN_x4plus.pth`) в
-  `ComfyUI/models/upscale_models/`.
-- **VHS_VideoCombine**: `crf` — качество `MP4` (меньше = чётче), `format` =
-  `video/h264-mp4`, `frame_rate` = `25`.
+- **SadTalker:** `faceModelResolution` 256/512, `gfpganAsFaceEnhancer` (чище лицо).
+- **AniPortrait:** `width`/`height` (512 база; больше = чётче и медленнее),
+  `steps`, `cfg`.
+- **VHS_VideoCombine:** `crf` (меньше = чётче), `format` = `video/h264-mp4`.
 
 ---
 
-## Требуемые кастомные ноды
+## Требуемые расширения и точные имена нод
 
-| Нода | Расширение |
-|------|-----------|
-| `SadTalker` | `ComfyUI-SadTalker` |
-| `AniPortrait_*` | `ComfyUI-AniPortrait` |
-| `XTTS` | XTTS-нода (например `ComfyUI-XTTS`) |
-| `VHS_VideoCombine`, `VHS_LoadVideo` | `ComfyUI-VideoHelperSuite` |
-| `Text Multiline` | например `WAS Node Suite` (или вводите текст в виджете TTS) |
-| `VAELoader`, `UpscaleModelLoader`, `ImageUpscaleWithModel`, `Note` | ядро ComfyUI |
+| Нода (тип) | Расширение |
+|-----------|-----------|
+| `SadTalker`, `ShowVideo`, `LoadAudio` | `Comfyui-SadTalker` (+ ядро ComfyUI) |
+| `XTTS_INFER`, `LoadAudioPath`, `PreViewAudio` | `ComfyUI-XTTS` |
+| `AniPortrait_Audio2Video`, `AniPortrait_Audio_Path`, `AniPortrait_Pose_Gen_Video` | `ComfyUI_Aniportrait` |
+| `VHS_LoadVideo`, `VHS_VHSAudioToAudio`, `VHS_VideoCombine` | `ComfyUI-VideoHelperSuite` |
+| `Note` | ядро ComfyUI |
 
-> ⚠️ Имена нод, набор входов и параметров **зависят от версии расширений**.
-> Если нода подсвечена красным — установите расширение через **ComfyUI Manager**
-> или поправьте связи/параметры под свою версию. AniPortrait требователен к VRAM
-> (обычно 12+ ГБ).
+Если нода красная — установите расширение через **ComfyUI Manager**.
+
+---
+
+## Источники (сверка нод)
+
+- SadTalker: https://github.com/haomole/Comfyui-SadTalker
+- XTTS: https://github.com/AIFSH/ComfyUI-XTTS
+- AniPortrait: https://github.com/frankchieng/ComfyUI_Aniportrait
+  (примеры: `assets/audio2video_workflow.json`, `assets/face_reenacment_workflow.json`)
+- VideoHelperSuite: https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite

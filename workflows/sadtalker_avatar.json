@@ -1,11 +1,11 @@
 {
   "last_node_id": 5,
-  "last_link_id": 4,
+  "last_link_id": 3,
   "nodes": [
     {
       "id": 1,
       "type": "LoadImage",
-      "pos": [80, 120],
+      "pos": [60, 120],
       "size": [320, 320],
       "flags": {},
       "order": 0,
@@ -29,12 +29,12 @@
         "Node name for S&R": "LoadImage"
       },
       "widgets_values": ["avatar.png", "image"],
-      "title": "Фото аватара"
+      "title": "Фото аватара (LoadImage)"
     },
     {
       "id": 2,
       "type": "LoadAudio",
-      "pos": [80, 500],
+      "pos": [60, 500],
       "size": [320, 130],
       "flags": {},
       "order": 1,
@@ -44,99 +44,88 @@
         {
           "name": "AUDIO",
           "type": "AUDIO",
-          "links": [2, 4],
+          "links": [2],
           "slot_index": 0
         }
       ],
       "properties": {
         "Node name for S&R": "LoadAudio"
       },
-      "widgets_values": ["voice.wav", "audio"],
-      "title": "Голос (озвучка)"
+      "widgets_values": ["voice.wav"],
+      "title": "Голос — нативный AUDIO (LoadAudio)"
     },
     {
       "id": 3,
       "type": "SadTalker",
-      "pos": [480, 200],
-      "size": [340, 280],
+      "pos": [460, 160],
+      "size": [360, 360],
       "flags": {},
       "order": 2,
       "mode": 0,
       "inputs": [
         {
-          "name": "source_image",
+          "name": "image",
           "type": "IMAGE",
           "link": 1
         },
         {
-          "name": "driven_audio",
+          "name": "audio",
           "type": "AUDIO",
           "link": 2
+        },
+        {
+          "name": "refVideo",
+          "type": "VIDEOSTRING",
+          "link": null
         }
       ],
       "outputs": [
         {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [3],
+          "name": "video_path",
+          "type": "STRING",
+          "links": null,
           "slot_index": 0
+        },
+        {
+          "name": "show_video_path",
+          "type": "STRING",
+          "links": [3],
+          "slot_index": 1
         }
       ],
       "properties": {
         "Node name for S&R": "SadTalker"
       },
-      "widgets_values": ["crop", true, "None", 1, 256, 0],
-      "title": "SadTalker (preprocess ▼ / enhancer ▼)"
+      "widgets_values": [0, "512", "crop", false, 2, true, false, 5, false, "pose"],
+      "title": "SadTalker (faceModelResolution ▼ / preprocess ▼ / refInfo ▼)"
     },
     {
       "id": 4,
-      "type": "VHS_VideoCombine",
-      "pos": [900, 200],
-      "size": [380, 360],
+      "type": "ShowVideo",
+      "pos": [900, 160],
+      "size": [320, 280],
       "flags": {},
       "order": 3,
       "mode": 0,
       "inputs": [
         {
-          "name": "images",
-          "type": "IMAGE",
+          "name": "video_path",
+          "type": "STRING",
           "link": 3
-        },
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "link": 4
         }
       ],
-      "outputs": [
-        {
-          "name": "Filenames",
-          "type": "VHS_FILENAMES",
-          "links": null,
-          "slot_index": 0
-        }
-      ],
+      "outputs": [],
       "properties": {
-        "Node name for S&R": "VHS_VideoCombine"
+        "Node name for S&R": "ShowVideo"
       },
-      "widgets_values": {
-        "frame_rate": 25,
-        "loop_count": 0,
-        "filename_prefix": "ComfyAvatar",
-        "format": "video/h264-mp4",
-        "pingpong": false,
-        "save_output": true,
-        "pix_fmt": "yuv420p",
-        "crf": 19,
-        "save_metadata": true
-      },
-      "title": "Сохранить видео (VHS_VideoCombine)"
+      "widgets_values": [],
+      "title": "Превью видео (ShowVideo)"
     },
     {
       "id": 5,
       "type": "Note",
-      "pos": [480, 510],
-      "size": [340, 280],
+      "pos": [460, 560],
+      "size": [360, 300],
       "flags": {},
       "order": 4,
       "mode": 0,
@@ -144,33 +133,17 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "ФОРМАТЫ\n\n• Фото (LoadImage): PNG/JPG, лицо анфас,\n  квадрат, лучше >=512px, видны глаза и рот.\n\n• Аудио (LoadAudio): WAV (лучше всего) или MP3,\n  моно, 16 кГц, чистая речь без музыки.\n  Длинное аудио = долгая генерация.\n\n• Выход: MP4 H.264 в ComfyUI/output (префикс\n  ComfyAvatar).\n\nМОДЕЛИ (выпадающие списки ▼ на ноде SadTalker)\n• preprocess: crop / resize / full / extcrop ...\n• enhancer: None / gfpgan / RestoreFormer\n  (gfpgan/RestoreFormer чище, но медленнее).\n• size: 256 (быстро) / 512 (качественнее).\n\nКАЧЕСТВО ВИДЕО\n• CRF (VHS): меньше = чётче и больше файл.\n\nНоды SadTalker/VHS требуют расширений\nComfyUI-SadTalker и VideoHelperSuite."
+        "НОДА: SadTalker (репозиторий haomole/Comfyui-SadTalker).\nSadTalker сам сохраняет MP4 и отдаёт путь video_path —\nVHS_VideoCombine НЕ нужен.\n\nФОРМАТЫ\n• image (LoadImage): PNG/JPG, лицо анфас, квадрат,\n  лучше >=512px, видны глаза и рот.\n• audio (LoadAudio, нативный AUDIO): WAV/MP3 из папки\n  ComfyUI/input, моно, чистая речь.\n\nВЫПАДАЮЩИЕ СПИСКИ ▼ на ноде SadTalker\n• faceModelResolution: 256 / 512\n• preprocess: crop / resize / full / extcrop / extfull\n• refInfo: pose / blink / pose+blink / all\n• gfpganAsFaceEnhancer (bool) — чище лицо, но дольше.\n\nКЛОН ГОЛОСА: сгенерируйте WAV в xtts_voice_clone.json,\nположите его в ComfyUI/input и выберите в LoadAudio."
       ],
-      "title": "ℹ️ Форматы, модели, качество"
+      "title": "ℹ️ Форматы, модели, заметки"
     }
   ],
   "links": [
     [1, 1, 0, 3, 0, "IMAGE"],
     [2, 2, 0, 3, 1, "AUDIO"],
-    [3, 3, 0, 4, 0, "IMAGE"],
-    [4, 2, 0, 4, 1, "AUDIO"]
+    [3, 3, 1, 4, 0, "STRING"]
   ],
-  "groups": [
-    {
-      "title": "Вход: фото + голос",
-      "bounding": [60, 50, 360, 600],
-      "color": "#3f789e",
-      "font_size": 24,
-      "flags": {}
-    },
-    {
-      "title": "Анимация и сборка видео",
-      "bounding": [460, 130, 840, 460],
-      "color": "#a1309b",
-      "font_size": 24,
-      "flags": {}
-    }
-  ],
+  "groups": [],
   "config": {},
   "extra": {
     "ds": {
