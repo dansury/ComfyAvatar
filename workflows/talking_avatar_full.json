@@ -1,5 +1,5 @@
 {
-  "last_node_id": 8,
+  "last_node_id": 11,
   "last_link_id": 8,
   "nodes": [
     {
@@ -75,13 +75,13 @@
         "Node name for S&R": "LoadAudio"
       },
       "widgets_values": ["manner.ogg", "audio"],
-      "title": "3. Манера речи — референс (.ogg)"
+      "title": "3. Манера речи — референс (.ogg/.wav)"
     },
     {
       "id": 4,
-      "type": "BarkTTS",
+      "type": "XTTS",
       "pos": [440, 460],
-      "size": [320, 200],
+      "size": [330, 200],
       "flags": {},
       "order": 3,
       "mode": 0,
@@ -89,13 +89,10 @@
         {
           "name": "text",
           "type": "STRING",
-          "link": 3,
-          "widget": {
-            "name": "text"
-          }
+          "link": 3
         },
         {
-          "name": "reference_audio",
+          "name": "speaker_audio",
           "type": "AUDIO",
           "link": 2
         }
@@ -109,10 +106,10 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "BarkTTS"
+        "Node name for S&R": "XTTS"
       },
-      "widgets_values": ["", "v2/ru_speaker_3", "ru", 0.7],
-      "title": "4. Озвучка (Bark / TTS)"
+      "widgets_values": ["xtts_v2", "ru", 1.0, 0.7],
+      "title": "4. Озвучка XTTS (клон голоса)"
     },
     {
       "id": 5,
@@ -169,7 +166,7 @@
         "Node name for S&R": "UpscaleModelLoader"
       },
       "widgets_values": ["RealESRGAN_x4plus.pth"],
-      "title": "6. Модель апскейла (опц.)"
+      "title": "6. Модель апскейла ▼ (опц.)"
     },
     {
       "id": 7,
@@ -248,6 +245,38 @@
         "save_metadata": true
       },
       "title": "8. Сведение в MP4 (VHS_VideoCombine)"
+    },
+    {
+      "id": 9,
+      "type": "Note",
+      "pos": [440, 80],
+      "size": [340, 320],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "ФОРМАТЫ ВХОДОВ\n\n• Фото (LoadImage): PNG/JPG, лицо анфас, нейтральный\n  фон, квадрат, лучше >=512x512. Видны оба глаза\n  и рот. Без сильного поворота/наклона головы.\n\n• Референс голоса (XTTS): WAV/OGG, 6-20 секунд\n  чистой речи одного диктора, без музыки и шума,\n  моно, 16-24 кГц. Чем чище образец — тем точнее\n  клон голоса.\n\n• Текст: на языке, выбранном в виджете language\n  XTTS (ru/en/...). Без эмодзи. Длинный текст\n  бьётся на предложения.\n\nМОДЕЛИ (выпадающие списки ▼)\n• XTTS: model (xtts_v2), language.\n• Upscale: модель из models/upscale_models/."
+      ],
+      "title": "ℹ️ Входы и форматы"
+    },
+    {
+      "id": 10,
+      "type": "Note",
+      "pos": [1500, 600],
+      "size": [380, 240],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "ВЫХОД И КАЧЕСТВО\n\n• Выход: MP4 (H.264, yuv420p) в ComfyUI/output,\n  префикс ComfyAvatar.\n\n• SadTalker size: 256 (быстро) или 512 (чётче).\n  enhancer: None / gfpgan / RestoreFormer\n  (gfpgan заметно дольше, но чище лицо).\n\n• CRF (VHS): меньше = качественнее и больше файл\n  (17 ~ высокое качество, 23 ~ среднее).\n\n• Повышение качества (нода 7): по умолчанию\n  Bypass. Снимите Bypass (Ctrl+B) и положите\n  модель в models/upscale_models/.\n\nОГРАНИЧЕНИЯ\n• Длинное аудио = долгая генерация и много VRAM.\n• Профиль/очки/чёлка на глаза ухудшают губы.\n• Имена нод/моделей зависят от расширений."
+      ],
+      "title": "ℹ️ Выход, качество, лимиты"
     }
   ],
   "links": [
@@ -269,8 +298,8 @@
       "flags": {}
     },
     {
-      "title": "Озвучка (TTS)",
-      "bounding": [420, 380, 360, 300],
+      "title": "Озвучка (XTTS)",
+      "bounding": [420, 420, 370, 260],
       "color": "#88A",
       "font_size": 24,
       "flags": {}

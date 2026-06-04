@@ -1,5 +1,5 @@
 {
-  "last_node_id": 4,
+  "last_node_id": 5,
   "last_link_id": 4,
   "nodes": [
     {
@@ -86,7 +86,7 @@
         "Node name for S&R": "SadTalker"
       },
       "widgets_values": ["crop", true, "None", 1, 256, 0],
-      "title": "SadTalker"
+      "title": "SadTalker (preprocess ▼ / enhancer ▼)"
     },
     {
       "id": 4,
@@ -131,6 +131,22 @@
         "save_metadata": true
       },
       "title": "Сохранить видео (VHS_VideoCombine)"
+    },
+    {
+      "id": 5,
+      "type": "Note",
+      "pos": [480, 510],
+      "size": [340, 280],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "ФОРМАТЫ\n\n• Фото (LoadImage): PNG/JPG, лицо анфас,\n  квадрат, лучше >=512px, видны глаза и рот.\n\n• Аудио (LoadAudio): WAV (лучше всего) или MP3,\n  моно, 16 кГц, чистая речь без музыки.\n  Длинное аудио = долгая генерация.\n\n• Выход: MP4 H.264 в ComfyUI/output (префикс\n  ComfyAvatar).\n\nМОДЕЛИ (выпадающие списки ▼ на ноде SadTalker)\n• preprocess: crop / resize / full / extcrop ...\n• enhancer: None / gfpgan / RestoreFormer\n  (gfpgan/RestoreFormer чище, но медленнее).\n• size: 256 (быстро) / 512 (качественнее).\n\nКАЧЕСТВО ВИДЕО\n• CRF (VHS): меньше = чётче и больше файл.\n\nНоды SadTalker/VHS требуют расширений\nComfyUI-SadTalker и VideoHelperSuite."
+      ],
+      "title": "ℹ️ Форматы, модели, качество"
     }
   ],
   "links": [

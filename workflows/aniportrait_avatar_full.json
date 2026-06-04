@@ -1,0 +1,635 @@
+{
+  "last_node_id": 18,
+  "last_link_id": 19,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [40, 80],
+      "size": [300, 320],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [4, 14, 18],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": ["portrait.png", "image"],
+      "title": "1. Исходный портрет (LoadImage)"
+    },
+    {
+      "id": 3,
+      "type": "Text Multiline",
+      "pos": [40, 440],
+      "size": [300, 150],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [1],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Text Multiline"
+      },
+      "widgets_values": ["Привет! Это мой говорящий AI-аватар на AniPortrait."],
+      "title": "2. Текст для озвучки"
+    },
+    {
+      "id": 2,
+      "type": "LoadAudio",
+      "pos": [40, 640],
+      "size": [300, 130],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [2],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadAudio"
+      },
+      "widgets_values": ["manner.ogg", "audio"],
+      "title": "3. Манера речи — референс (.ogg/.wav)"
+    },
+    {
+      "id": 4,
+      "type": "XTTS",
+      "pos": [400, 560],
+      "size": [320, 200],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 1
+        },
+        {
+          "name": "speaker_audio",
+          "type": "AUDIO",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [3, 11],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "XTTS"
+      },
+      "widgets_values": ["xtts_v2", "ru", 1.0, 0.7],
+      "title": "4. Озвучка XTTS (клон голоса)"
+    },
+    {
+      "id": 5,
+      "type": "AniPortrait_ModelLoader",
+      "pos": [400, 40],
+      "size": [330, 200],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "ANIPORTRAIT_PIPE",
+          "type": "ANIPORTRAIT_PIPE",
+          "links": [5, 12, 16],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AniPortrait_ModelLoader"
+      },
+      "widgets_values": [
+        "denoising_unet.pth",
+        "reference_unet.pth",
+        "pose_guider.pth",
+        "motion_module.pth",
+        "image_encoder"
+      ],
+      "title": "5. AniPortrait модели ▼"
+    },
+    {
+      "id": 6,
+      "type": "VAELoader",
+      "pos": [400, 290],
+      "size": [330, 60],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [6, 13, 17],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": ["sd-vae-ft-mse"],
+      "title": "6. VAE ▼"
+    },
+    {
+      "id": 7,
+      "type": "AniPortrait_LoadWav2Vec",
+      "pos": [400, 400],
+      "size": [330, 60],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "WAV2VEC",
+          "type": "WAV2VEC",
+          "links": [7],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AniPortrait_LoadWav2Vec"
+      },
+      "widgets_values": ["wav2vec2-base-960h"],
+      "title": "7. Wav2Vec (аудио-энкодер) ▼"
+    },
+    {
+      "id": 8,
+      "type": "AniPortrait_Audio2Video",
+      "pos": [800, 120],
+      "size": [340, 320],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pipe",
+          "type": "ANIPORTRAIT_PIPE",
+          "link": 5
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 6
+        },
+        {
+          "name": "wav2vec",
+          "type": "WAV2VEC",
+          "link": 7
+        },
+        {
+          "name": "ref_image",
+          "type": "IMAGE",
+          "link": 4
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [8],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AniPortrait_Audio2Video"
+      },
+      "widgets_values": [512, 512, 60, 25, 3.5, 25, 42],
+      "title": "8. AniPortrait: Audio2Video (основной путь)"
+    },
+    {
+      "id": 9,
+      "type": "VHS_LoadVideo",
+      "pos": [800, 540],
+      "size": [320, 250],
+      "flags": {},
+      "order": 8,
+      "mode": 4,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [15],
+          "slot_index": 0
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null,
+          "slot_index": 1
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null,
+          "slot_index": 2
+        },
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": null,
+          "slot_index": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_LoadVideo"
+      },
+      "widgets_values": {
+        "video": "pose_reference.mp4",
+        "force_rate": 0,
+        "force_size": "Disabled",
+        "custom_width": 512,
+        "custom_height": 512,
+        "frame_load_cap": 0,
+        "skip_first_frames": 0,
+        "select_every_nth": 1
+      },
+      "title": "9. Pose-видео ▼ (опц., Bypass)"
+    },
+    {
+      "id": 10,
+      "type": "AniPortrait_Pose2Video",
+      "pos": [1160, 520],
+      "size": [330, 220],
+      "flags": {},
+      "order": 9,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "pipe",
+          "type": "ANIPORTRAIT_PIPE",
+          "link": 12
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 13
+        },
+        {
+          "name": "ref_image",
+          "type": "IMAGE",
+          "link": 14
+        },
+        {
+          "name": "pose_images",
+          "type": "IMAGE",
+          "link": 15
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AniPortrait_Pose2Video"
+      },
+      "widgets_values": [512, 512, 25, 3.5, 42],
+      "title": "10. AniPortrait: Pose2Video (опц., Bypass)"
+    },
+    {
+      "id": 11,
+      "type": "VHS_LoadVideo",
+      "pos": [800, 830],
+      "size": [320, 250],
+      "flags": {},
+      "order": 10,
+      "mode": 4,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [19],
+          "slot_index": 0
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null,
+          "slot_index": 1
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null,
+          "slot_index": 2
+        },
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": null,
+          "slot_index": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_LoadVideo"
+      },
+      "widgets_values": {
+        "video": "driving_face.mp4",
+        "force_rate": 0,
+        "force_size": "Disabled",
+        "custom_width": 512,
+        "custom_height": 512,
+        "frame_load_cap": 0,
+        "skip_first_frames": 0,
+        "select_every_nth": 1
+      },
+      "title": "11. Драйвер-видео мимики ▼ (опц., Bypass)"
+    },
+    {
+      "id": 12,
+      "type": "AniPortrait_FaceReenact",
+      "pos": [1160, 800],
+      "size": [330, 220],
+      "flags": {},
+      "order": 11,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "pipe",
+          "type": "ANIPORTRAIT_PIPE",
+          "link": 16
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 17
+        },
+        {
+          "name": "ref_image",
+          "type": "IMAGE",
+          "link": 18
+        },
+        {
+          "name": "source_video",
+          "type": "IMAGE",
+          "link": 19
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AniPortrait_FaceReenact"
+      },
+      "widgets_values": [512, 512, 25, 3.5, 42],
+      "title": "12. AniPortrait: Face Reenactment (опц., Bypass)"
+    },
+    {
+      "id": 13,
+      "type": "UpscaleModelLoader",
+      "pos": [1160, 120],
+      "size": [330, 60],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "UPSCALE_MODEL",
+          "type": "UPSCALE_MODEL",
+          "links": [9],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UpscaleModelLoader"
+      },
+      "widgets_values": ["RealESRGAN_x4plus.pth"],
+      "title": "13. Модель апскейла ▼ (опц.)"
+    },
+    {
+      "id": 14,
+      "type": "ImageUpscaleWithModel",
+      "pos": [1160, 230],
+      "size": [300, 100],
+      "flags": {},
+      "order": 13,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "upscale_model",
+          "type": "UPSCALE_MODEL",
+          "link": 9
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [10],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageUpscaleWithModel"
+      },
+      "widgets_values": [],
+      "title": "14. Повышение качества (Bypass = выкл.)"
+    },
+    {
+      "id": 15,
+      "type": "VHS_VideoCombine",
+      "pos": [1540, 120],
+      "size": [380, 380],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 10
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 11
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 25,
+        "loop_count": 0,
+        "filename_prefix": "ComfyAvatar_AniPortrait",
+        "format": "video/h264-mp4",
+        "pingpong": false,
+        "save_output": true,
+        "pix_fmt": "yuv420p",
+        "crf": 17,
+        "save_metadata": true
+      },
+      "title": "15. Сведение в MP4 (VHS_VideoCombine)"
+    },
+    {
+      "id": 16,
+      "type": "Note",
+      "pos": [40, 810],
+      "size": [340, 300],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "ФОРМАТЫ ВХОДОВ\n\n• Портрет (LoadImage): PNG/JPG, лицо анфас,\n  квадрат, лучше 512x512, видно всё лицо.\n  AniPortrait чувствителен к ракурсу — берите\n  ровный фронтальный кадр.\n\n• Референс голоса (XTTS): WAV/OGG, 6-20 c\n  чистой речи одного диктора, моно, 16-24 кГц.\n\n• Текст: на языке из виджета language XTTS.\n\n• Pose/Driving видео (опц.): MP4/MOV, одно лицо\n  в кадре, стабильный план, тот же ракурс, что\n  у портрета; 25 fps, кратно 8 кадрам.\n\nМОДЕЛИ — выпадающие списки ▼\nAniPortrait модели, VAE, Wav2Vec, Upscale."
+      ],
+      "title": "ℹ️ Входы и форматы"
+    },
+    {
+      "id": 17,
+      "type": "Note",
+      "pos": [800, 40],
+      "size": [340, 70],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "ОПЦИОНАЛЬНЫЕ РЕЖИМЫ (по умолчанию Bypass)\nЧтобы включить — выделите ноды ветки и снимите\nBypass (Ctrl+B), затем подключите выход ноды 10\nили 12 ко входу images ноды 15 вместо ноды 8/14."
+      ],
+      "title": "ℹ️ Pose-driven / Reenactment"
+    },
+    {
+      "id": 18,
+      "type": "Note",
+      "pos": [1540, 540],
+      "size": [380, 280],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "ВЫХОД И КАЧЕСТВО\n\n• Выход: MP4 (H.264) в ComfyUI/output, префикс\n  ComfyAvatar_AniPortrait.\n\n• Размер/детализация: width/height в нодах\n  AniPortrait (512 — база; больше = чётче и\n  заметно медленнее, нужно больше VRAM).\n\n• steps/cfg: больше шагов = качественнее и\n  дольше; cfg ~3.5.\n\n• CRF (VHS): меньше = чётче и больше файл.\n\n• Повышение качества (нода 14): Bypass по\n  умолчанию; снимите Ctrl+B и положите модель\n  в models/upscale_models/.\n\nОГРАНИЧЕНИЯ\n• AniPortrait требует много VRAM (обычно 12+ ГБ).\n• Длинное аудио/видео = долгая генерация.\n• Имена нод/моделей зависят от версии\n  расширения ComfyUI-AniPortrait."
+      ],
+      "title": "ℹ️ Выход, качество, лимиты"
+    }
+  ],
+  "links": [
+    [1, 3, 0, 4, 0, "STRING"],
+    [2, 2, 0, 4, 1, "AUDIO"],
+    [3, 4, 0, 8, 4, "AUDIO"],
+    [4, 1, 0, 8, 3, "IMAGE"],
+    [5, 5, 0, 8, 0, "ANIPORTRAIT_PIPE"],
+    [6, 6, 0, 8, 1, "VAE"],
+    [7, 7, 0, 8, 2, "WAV2VEC"],
+    [8, 8, 0, 14, 1, "IMAGE"],
+    [9, 13, 0, 14, 0, "UPSCALE_MODEL"],
+    [10, 14, 0, 15, 0, "IMAGE"],
+    [11, 4, 0, 15, 1, "AUDIO"],
+    [12, 5, 0, 10, 0, "ANIPORTRAIT_PIPE"],
+    [13, 6, 0, 10, 1, "VAE"],
+    [14, 1, 0, 10, 2, "IMAGE"],
+    [15, 9, 0, 10, 3, "IMAGE"],
+    [16, 5, 0, 12, 0, "ANIPORTRAIT_PIPE"],
+    [17, 6, 0, 12, 1, "VAE"],
+    [18, 1, 0, 12, 2, "IMAGE"],
+    [19, 11, 0, 12, 3, "IMAGE"]
+  ],
+  "groups": [
+    {
+      "title": "Вход: портрет + текст + манера речи",
+      "bounding": [20, 0, 330, 780],
+      "color": "#3f789e",
+      "font_size": 22,
+      "flags": {}
+    },
+    {
+      "title": "Озвучка + модели AniPortrait",
+      "bounding": [380, 0, 360, 770],
+      "color": "#88A",
+      "font_size": 22,
+      "flags": {}
+    },
+    {
+      "title": "Опционально: pose-driven и face reenactment",
+      "bounding": [780, 500, 730, 600],
+      "color": "#b58b2a",
+      "font_size": 22,
+      "flags": {}
+    },
+    {
+      "title": "Качество + сведение в MP4",
+      "bounding": [1140, 100, 780, 420],
+      "color": "#a1309b",
+      "font_size": 22,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.6,
+      "offset": [0, 0]
+    }
+  },
+  "version": 0.4
+}
