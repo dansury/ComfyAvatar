@@ -23,13 +23,29 @@
 
 ---
 
+## Два режима
+
+- **Режим A — всё в одном графе** (озвучка XTTS встроена). Удобно, но XTTS и
+  аватар-модель грузятся вместе → выше пик VRAM.
+- **Режим B — озвучка отдельным графом** (`_separate_voice`). Сначала гоните
+  `xtts_voice_clone.json` (он пишет `input/comfyavatar_voice.wav`), затем граф
+  аватара грузит этот файл нодой `ComfyAvatarLoadVoice`. XTTS в графе аватара не
+  загружается → меньше VRAM.
+
 ## Файлы
 
-| Файл | Конвейер |
-|------|----------|
-| `xtts_voice_clone.json` | Только озвучка: `LoadAudioPath → XTTS_INFER → PreViewAudio` + запись фикс. файла мостом |
-| `sadtalker_avatar.json` | `LoadAudioPath → XTTS_INFER → Bridge → SadTalker → ShowVideo` |
-| `aniportrait_avatar_full.json` | `… → Bridge → AniPortrait_Audio2Video → VHS_VideoCombine` (+ опц. face reenactment) |
+| Файл | Режим | Конвейер |
+|------|-------|----------|
+| `xtts_voice_clone.json` | — | Озвучка (этап 1): `LoadAudioPath → XTTS_INFER → PreViewAudio` + запись `input/comfyavatar_voice.wav` |
+| `sadtalker_avatar.json` | A | `LoadAudioPath → XTTS_INFER → Bridge → SadTalker → ShowVideo` |
+| `aniportrait_avatar_full.json` | A | `… → Bridge → AniPortrait_Audio2Video → VHS_VideoCombine` (+ опц. reenactment) |
+| `sadtalker_avatar_separate_voice.json` | B | `ComfyAvatarLoadVoice → SadTalker → ShowVideo` |
+| `aniportrait_avatar_separate_voice.json` | B | `ComfyAvatarLoadVoice → AniPortrait_Audio2Video → VHS_VideoCombine` (+ опц. reenactment) |
+
+> 🔒 **AniPortrait зафиксирован под последнюю версию** ноды
+> (`frankchieng/ComfyUI_Aniportrait`, `main`): точный порядок виджетов и
+> канонические пути моделей `./pretrained_model/...`, `frame_count` для
+> reenactment заведён с `VHS_LoadVideo` (это `forceInput`). Ничего не «дрейфует».
 
 - **SadTalker** сам сохраняет MP4 (отдаёт `video_path`) — `VHS_VideoCombine` ему не нужен.
 - **AniPortrait**: движение головы задаёт pose-видео (`VHS_LoadVideo`); опциональная

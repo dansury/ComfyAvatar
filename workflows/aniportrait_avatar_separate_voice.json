@@ -1,6 +1,6 @@
 {
-  "last_node_id": 11,
-  "last_link_id": 11,
+  "last_node_id": 8,
+  "last_link_id": 8,
   "nodes": [
     {
       "id": 1,
@@ -15,7 +15,7 @@
         {
           "name": "IMAGE",
           "type": "IMAGE",
-          "links": [1, 8],
+          "links": [1, 6],
           "slot_index": 0
         },
         {
@@ -44,13 +44,13 @@
         {
           "name": "IMAGE",
           "type": "IMAGE",
-          "links": [2, 9],
+          "links": [2, 7],
           "slot_index": 0
         },
         {
           "name": "frame_count",
           "type": "INT",
-          "links": [10],
+          "links": [8],
           "slot_index": 1
         },
         {
@@ -83,82 +83,24 @@
     },
     {
       "id": 3,
-      "type": "LoadAudioPath",
+      "type": "ComfyAvatarLoadVoice",
       "pos": [400, 100],
-      "size": [300, 80],
+      "size": [320, 110],
       "flags": {},
       "order": 2,
       "mode": 0,
       "inputs": [],
       "outputs": [
         {
-          "name": "AUDIOPATH",
-          "type": "AUDIOPATH",
-          "links": [3],
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadAudioPath"
-      },
-      "widgets_values": ["manner.wav"],
-      "title": "Референс манеры речи ▼ (LoadAudioPath)"
-    },
-    {
-      "id": 4,
-      "type": "XTTS_INFER",
-      "pos": [400, 230],
-      "size": [320, 260],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "AUDIOPATH",
-          "link": 3
-        }
-      ],
-      "outputs": [
-        {
-          "name": "AUDIOPATH",
-          "type": "AUDIOPATH",
-          "links": [4, 11],
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "XTTS_INFER"
-      },
-      "widgets_values": ["Привет! Это мой говорящий AI-аватар на AniPortrait.", "ru", 0.65, 1.0, 2.0, 50, 0.8, 1.0],
-      "title": "Озвучка XTTS (language ▼)"
-    },
-    {
-      "id": 5,
-      "type": "ComfyAvatarVoiceBridge",
-      "pos": [760, 200],
-      "size": [320, 110],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "audio_path",
-          "type": "AUDIOPATH",
-          "link": 4
-        }
-      ],
-      "outputs": [
-        {
           "name": "audio",
           "type": "AUDIO",
-          "links": [7],
+          "links": [5],
           "slot_index": 0
         },
         {
           "name": "audio_path",
           "type": "Audio_Path",
-          "links": [5],
+          "links": [3],
           "slot_index": 1
         },
         {
@@ -169,18 +111,18 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "ComfyAvatarVoiceBridge"
+        "Node name for S&R": "ComfyAvatarLoadVoice"
       },
-      "widgets_values": ["comfyavatar_voice.wav", "input"],
-      "title": "Мост XTTS→AUDIO + Audio_Path (+ запись input/comfyavatar_voice.wav)"
+      "widgets_values": ["comfyavatar_voice.wav"],
+      "title": "Озвучка из файла ▼ (ComfyAvatarLoadVoice) — этап 1 в xtts_voice_clone.json"
     },
     {
-      "id": 6,
+      "id": 4,
       "type": "AniPortrait_Audio2Video",
-      "pos": [760, 360],
+      "pos": [760, 100],
       "size": [360, 500],
       "flags": {},
-      "order": 5,
+      "order": 3,
       "mode": 0,
       "inputs": [
         {
@@ -196,7 +138,7 @@
         {
           "name": "audio_path",
           "type": "Audio_Path",
-          "link": 5
+          "link": 3
         },
         {
           "name": "fps",
@@ -208,7 +150,7 @@
         {
           "name": "images",
           "type": "IMAGE",
-          "links": [6],
+          "links": [4],
           "slot_index": 0
         }
       ],
@@ -236,23 +178,23 @@
       "title": "AniPortrait: Audio2Video (модели ▼)"
     },
     {
-      "id": 7,
+      "id": 5,
       "type": "VHS_VideoCombine",
-      "pos": [1160, 360],
+      "pos": [1160, 100],
       "size": [380, 380],
       "flags": {},
-      "order": 6,
+      "order": 4,
       "mode": 0,
       "inputs": [
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 6
+          "link": 4
         },
         {
           "name": "audio",
           "type": "AUDIO",
-          "link": 7
+          "link": 5
         }
       ],
       "outputs": [
@@ -280,28 +222,28 @@
       "title": "Сведение в MP4 (VHS_VideoCombine)"
     },
     {
-      "id": 8,
+      "id": 6,
       "type": "AniPortrait_Pose_Gen_Video",
-      "pos": [1160, 800],
+      "pos": [1160, 540],
       "size": [360, 440],
       "flags": {},
-      "order": 7,
+      "order": 5,
       "mode": 4,
       "inputs": [
         {
           "name": "ref_image",
           "type": "IMAGE",
-          "link": 8
+          "link": 6
         },
         {
           "name": "pose_images",
           "type": "IMAGE",
-          "link": 9
+          "link": 7
         },
         {
           "name": "frame_count",
           "type": "INT",
-          "link": 10
+          "link": 8
         }
       ],
       "outputs": [
@@ -335,84 +277,59 @@
       "title": "Face Reenactment / Pose_Gen_Video (опц., Bypass)"
     },
     {
-      "id": 9,
-      "type": "PreViewAudio",
-      "pos": [400, 540],
-      "size": [320, 120],
-      "flags": {},
-      "order": 8,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "AUDIOPATH",
-          "link": 11
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "PreViewAudio"
-      },
-      "widgets_values": [],
-      "title": "Прослушать озвучку (PreViewAudio)"
-    },
-    {
-      "id": 10,
+      "id": 7,
       "type": "Note",
-      "pos": [40, 820],
-      "size": [340, 320],
+      "pos": [400, 250],
+      "size": [320, 330],
       "flags": {},
-      "order": 9,
+      "order": 6,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "РЕЖИМ: всё в одном графе (озвучка XTTS встроена).\nЕсли не хватает VRAM — используйте\naniportrait_avatar_separate_voice.json (озвучка\nотдельным графом).\n\nФОРМАТЫ ВХОДОВ\n• Портрет (LoadImage): PNG/JPG, анфас, квадрат, 512px.\n• Pose-видео (VHS_LoadVideo): MP4/MOV, одно лицо,\n  стабильный план — задаёт движение головы.\n• Референс голоса (LoadAudioPath): из ComfyUI/input,\n  ТОЛЬКО wav/mp3/flac/m4a (ogg НЕ поддерживается).\n\nМОДЕЛИ ▼ на ноде Audio2Video берут единственный путь\nиз конфига AniPortrait (./pretrained_model/...).\nЗначения зафиксированы под последнюю версию ноды."
+        "РЕЖИМ: ОЗВУЧКА ОТДЕЛЬНЫМ ГРАФОМ.\n\nШАГ 1 — откройте xtts_voice_clone.json, задайте\nтекст и референс, Queue Prompt. Нода-мост запишет\ninput/comfyavatar_voice.wav (фикс. имя).\n\nШАГ 2 — этот граф: нода ComfyAvatarLoadVoice грузит\nтот файл и отдаёт его как AUDIO (в VideoCombine) и\nкак Audio_Path (в Audio2Video). XTTS здесь НЕ\nзагружается — экономия VRAM.\n\nЕсли в списке нет файла — сначала выполните шаг 1,\nзатем обновите граф (нода читает папку input).\n\nФОРМАТЫ: портрет PNG/JPG анфас 512px; pose-видео\nMP4/MOV (движение головы). Модели ▼ зафиксированы\nпод последнюю версию AniPortrait."
       ],
-      "title": "ℹ️ Режим, входы, модели"
+      "title": "ℹ️ Озвучка — отдельным графом (2 шага)"
     },
     {
-      "id": 11,
+      "id": 8,
       "type": "Note",
-      "pos": [1560, 360],
-      "size": [360, 480],
+      "pos": [1560, 100],
+      "size": [360, 380],
       "flags": {},
-      "order": 10,
+      "order": 7,
       "mode": 0,
       "inputs": [],
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "ЧТО СКАЧАТЬ (frankchieng/ComfyUI_Aniportrait)\nВ custom_nodes/ComfyUI_Aniportrait/pretrained_model/:\n• stable-diffusion-v1-5/  (runwayml/stable-diffusion-v1-5)\n• sd-vae-ft-mse/          (stabilityai/sd-vae-ft-mse)\n• image_encoder/          (lambdalabs/\n                           sd-image-variations-diffusers)\n• wav2vec2-base-960h/     (facebook/wav2vec2-base-960h)\n• denoising_unet.pth, reference_unet.pth,\n  motion_module.pth, pose_guider.pth, audio2mesh.pt,\n  audio2pose.pt, film_net_fp16.pt  (HF: ZJYang/AniPortrait)\n\nComfyUI-XTTS: модель coqui/XTTS-v2 качается авто.\nНОДА-МОСТ: comfyui/ComfyUI-ComfyAvatar →\nComfyUI/custom_nodes, затем перезапуск.\n\nОПЦ. FACE REENACTMENT: нода Pose_Gen_Video (Bypass).\nПереносит мимику с pose_images на портрет. frame_count\nуже заведён с VHS_LoadVideo. Включить: Ctrl+B, затем\nеё выход images → вход images ноды VHS_VideoCombine.\n\nКАЧЕСТВО: width/height (512 база), steps, cfg~3.5;\nCRF меньше=чётче. ЛИМИТ: AniPortrait ~12+ ГБ VRAM."
+        "ЧТО СКАЧАТЬ (frankchieng/ComfyUI_Aniportrait)\nВ custom_nodes/ComfyUI_Aniportrait/pretrained_model/:\n• stable-diffusion-v1-5/  (runwayml/stable-diffusion-v1-5)\n• sd-vae-ft-mse/          (stabilityai/sd-vae-ft-mse)\n• image_encoder/          (lambdalabs/\n                           sd-image-variations-diffusers)\n• wav2vec2-base-960h/     (facebook/wav2vec2-base-960h)\n• denoising_unet.pth, reference_unet.pth,\n  motion_module.pth, pose_guider.pth, audio2mesh.pt,\n  audio2pose.pt, film_net_fp16.pt  (HF: ZJYang/AniPortrait)\n\nНОДА-МОСТ: comfyui/ComfyUI-ComfyAvatar →\nComfyUI/custom_nodes, перезапуск.\n\nОПЦ. FACE REENACTMENT: Pose_Gen_Video (Bypass).\nframe_count уже заведён с VHS_LoadVideo. Включить:\nCtrl+B, затем выход images → вход images у\nVHS_VideoCombine.\n\nКАЧЕСТВО: width/height (512 база), steps, cfg~3.5;\nCRF меньше=чётче. ЛИМИТ: AniPortrait ~12+ ГБ VRAM."
       ],
       "title": "ℹ️ Загрузки, reenactment, качество"
     }
   ],
   "links": [
-    [1, 1, 0, 6, 0, "IMAGE"],
-    [2, 2, 0, 6, 1, "IMAGE"],
-    [3, 3, 0, 4, 0, "AUDIOPATH"],
-    [4, 4, 0, 5, 0, "AUDIOPATH"],
-    [5, 5, 1, 6, 2, "Audio_Path"],
-    [6, 6, 0, 7, 0, "IMAGE"],
-    [7, 5, 0, 7, 1, "AUDIO"],
-    [8, 1, 0, 8, 0, "IMAGE"],
-    [9, 2, 0, 8, 1, "IMAGE"],
-    [10, 2, 1, 8, 2, "INT"],
-    [11, 4, 0, 9, 0, "AUDIOPATH"]
+    [1, 1, 0, 4, 0, "IMAGE"],
+    [2, 2, 0, 4, 1, "IMAGE"],
+    [3, 3, 1, 4, 2, "Audio_Path"],
+    [4, 4, 0, 5, 0, "IMAGE"],
+    [5, 3, 0, 5, 1, "AUDIO"],
+    [6, 1, 0, 6, 0, "IMAGE"],
+    [7, 2, 0, 6, 1, "IMAGE"],
+    [8, 2, 1, 6, 2, "INT"]
   ],
   "groups": [
     {
-      "title": "Входы + озвучка + авто-мост",
-      "bounding": [20, 30, 1060, 770],
+      "title": "Входы + озвучка из файла (этап 2)",
+      "bounding": [20, 30, 720, 770],
       "color": "#3f789e",
       "font_size": 20,
       "flags": {}
     },
     {
       "title": "AniPortrait + сведение в MP4",
-      "bounding": [1100, 290, 460, 470],
+      "bounding": [740, 30, 800, 470],
       "color": "#a1309b",
       "font_size": 20,
       "flags": {}
@@ -421,7 +338,7 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.6,
+      "scale": 0.65,
       "offset": [0, 0]
     }
   },
