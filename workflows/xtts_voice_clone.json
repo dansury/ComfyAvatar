@@ -1,0 +1,151 @@
+{
+  "last_node_id": 5,
+  "last_link_id": 3,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadAudioPath",
+      "pos": [40, 160],
+      "size": [320, 80],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "AUDIOPATH",
+          "type": "AUDIOPATH",
+          "links": [1],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadAudioPath"
+      },
+      "widgets_values": ["manner.wav"],
+      "title": "Референс манеры речи ▼ (LoadAudioPath)"
+    },
+    {
+      "id": 2,
+      "type": "XTTS_INFER",
+      "pos": [400, 120],
+      "size": [360, 260],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIOPATH",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIOPATH",
+          "type": "AUDIOPATH",
+          "links": [2, 3],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "XTTS_INFER"
+      },
+      "widgets_values": ["Привет! Это мой говорящий AI-аватар.", "ru", 0.65, 1.0, 2.0, 50, 0.8, 1.0],
+      "title": "Озвучка XTTS (language ▼, клон голоса)"
+    },
+    {
+      "id": 3,
+      "type": "PreViewAudio",
+      "pos": [800, 120],
+      "size": [320, 120],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIOPATH",
+          "link": 2
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreViewAudio"
+      },
+      "widgets_values": [],
+      "title": "Прослушать результат (PreViewAudio)"
+    },
+    {
+      "id": 4,
+      "type": "ComfyAvatarVoiceBridge",
+      "pos": [800, 290],
+      "size": [320, 110],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio_path",
+          "type": "AUDIOPATH",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "audio_path",
+          "type": "Audio_Path",
+          "links": null,
+          "slot_index": 1
+        },
+        {
+          "name": "filename",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ComfyAvatarVoiceBridge"
+      },
+      "widgets_values": ["comfyavatar_voice.wav", "input"],
+      "title": "Сохранить с фикс. именем → input/comfyavatar_voice.wav"
+    },
+    {
+      "id": 5,
+      "type": "Note",
+      "pos": [400, 420],
+      "size": [400, 320],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "НАЗНАЧЕНИЕ: только озвучка (этап 1). Ноды из\nAIFSH/ComfyUI-XTTS + мост проекта.\n\nФОРМАТЫ\n• Референс (LoadAudioPath): файл из ComfyUI/input,\n  ТОЛЬКО wav/mp3/flac/m4a (ogg НЕ поддерживается —\n  сконвертируйте в wav). 6-20 c чистой моно-речи,\n  16-24 кГц, без музыки и шума.\n• Текст: виджет text на XTTS_INFER.\n• language ▼: en, es, fr, de, it, pt, pl, tr, ru,\n  nl, cs, ar, zh-cn, ja, hu, ko, hi.\n\nВЫХОД\n• XTTS пишет {timestamp}_xtts.wav в output (имя\n  случайное). Поэтому нода ComfyAvatarVoiceBridge\n  копирует его в input/comfyavatar_voice.wav —\n  фиксированное имя для следующего этапа.\n\nДАЛЬШЕ: откройте sadtalker_avatar.json или\naniportrait_avatar_full.json — там озвучка уже\nвстроена этим же мостом (всё в одном графе).\n\nЧТО СКАЧАТЬ: модель coqui/XTTS-v2 качается авто с\nHuggingFace при первом запуске. Ноду-мост (папка\ncomfyui/ComfyUI-ComfyAvatar) положите в\nComfyUI/custom_nodes и перезапустите ComfyUI."
+      ],
+      "title": "ℹ️ XTTS: форматы, фикс. имя, что скачать"
+    }
+  ],
+  "links": [
+    [1, 1, 0, 2, 0, "AUDIOPATH"],
+    [2, 2, 0, 3, 0, "AUDIOPATH"],
+    [3, 2, 0, 4, 0, "AUDIOPATH"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.9,
+      "offset": [0, 0]
+    }
+  },
+  "version": 0.4
+}
